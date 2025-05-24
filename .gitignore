@@ -1,0 +1,32 @@
+# Generic ignores
+*.log
+*.log.*
+*.db
+*.db-shm
+*.db-wal
+*.pyc
+._*
+__pycache__
+
+# Passwords and secrets
+secrets.yaml
+
+# Built-in configuration ignores
+#automations.yaml
+#scenes.yaml
+#scripts.yaml
+
+# Built-in blueprints ignores
+blueprints/*/homeassistant
+
+# Ignore vendored stuff
+custom_components
+themes
+blueprints
+image
+
+.HA_VERSION
+.cloud
+.storage
+
+

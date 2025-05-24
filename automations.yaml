@@ -1,0 +1,226 @@
+- id: '1727566814378'
+  alias: Privacy after sunsset
+  description: ''
+  triggers:
+  - event: sunset
+    offset: -00:10:00
+    trigger: sun
+  conditions: []
+  actions:
+  - action: cover.close_cover
+    metadata: {}
+    data: {}
+    target:
+      label_id: privacy
+  - action: switch.turn_on
+    metadata: {}
+    data: {}
+    target:
+      label_id: exterior_lights
+  mode: single
+- id: '1727619363042'
+  alias: Open shades in the morning
+  description: ''
+  trigger:
+  - platform: time
+    at: 08:00:00
+  condition: []
+  action:
+  - action: cover.set_cover_position
+    metadata: {}
+    data:
+      position: 50
+    target:
+      area_id:
+      - kitchen
+      - office
+  - action: cover.open_cover
+    metadata: {}
+    data: {}
+    target:
+      area_id:
+      - dining_room
+      - flex_room
+  mode: single
+- id: '1733696274738'
+  alias: Turn on Xmas lights at sundown
+  description: ''
+  trigger:
+  - platform: sun
+    event: sunset
+    offset: -00:10:00
+  condition: []
+  action:
+  - type: turn_on
+    device_id: bae8944e9df850d8d0739e306357e229
+    entity_id: c4972189d6aab967cd72ec004b3e8b00
+    domain: switch
+  - type: turn_on
+    device_id: 9f3363e82a72b23e1da7bf737f093707
+    entity_id: 241e0be30ebbc15fe022d7e154ce88a6
+    domain: switch
+  mode: single
+- id: '1733696356437'
+  alias: Turn off Xmas Lights at 11
+  description: ''
+  triggers:
+  - at: '23:00:00'
+    trigger: time
+  conditions: []
+  actions:
+  - type: turn_off
+    device_id: bae8944e9df850d8d0739e306357e229
+    entity_id: c4972189d6aab967cd72ec004b3e8b00
+    domain: switch
+  - type: turn_off
+    device_id: 9f3363e82a72b23e1da7bf737f093707
+    entity_id: 241e0be30ebbc15fe022d7e154ce88a6
+    domain: switch
+  mode: single
+- id: '1736729071588'
+  alias: Turn off heat mats after 4h
+  description: ''
+  triggers:
+  - type: turned_on
+    device_id: 41d526899fcd5a046a93f31ff8e68c95
+    entity_id: a19db08a70cc0f17f9cb1498921b491f
+    domain: switch
+    trigger: device
+    for:
+      hours: 4
+      minutes: 0
+      seconds: 0
+  conditions: []
+  actions:
+  - type: turn_off
+    device_id: 41d526899fcd5a046a93f31ff8e68c95
+    entity_id: a19db08a70cc0f17f9cb1498921b491f
+    domain: switch
+  mode: single
+- id: '1739554002605'
+  alias: Back Office switch on
+  description: ''
+  triggers:
+  - type: turned_on
+    device_id: 63096b2560edc00b3941c2e69a672b69
+    entity_id: 3e5731b2bd377e8551f9f8cbfbb9dec8
+    domain: switch
+    trigger: device
+  conditions: []
+  actions:
+  - type: turn_on
+    device_id: 78a3b8510d0deb606138f8f225ce70da
+    entity_id: 4db8578a0a8cac4f29b12700f374c3bc
+    domain: light
+    brightness_pct: 100
+  mode: single
+- id: '1739554090985'
+  alias: Back Office switch off
+  description: ''
+  triggers:
+  - type: turned_off
+    device_id: 63096b2560edc00b3941c2e69a672b69
+    entity_id: 3e5731b2bd377e8551f9f8cbfbb9dec8
+    domain: switch
+    trigger: device
+  conditions: []
+  actions:
+  - type: turn_off
+    device_id: 78a3b8510d0deb606138f8f225ce70da
+    entity_id: 4db8578a0a8cac4f29b12700f374c3bc
+    domain: light
+  mode: single
+- id: '1740363545295'
+  alias: Night Lockup
+  description: ''
+  triggers:
+  - trigger: time
+    at: '23:00:00'
+  conditions: []
+  actions:
+  - action: switch.turn_off
+    metadata: {}
+    data: {}
+    target:
+      label_id: exterior_lights
+  mode: single
+- id: '1741467098048'
+  alias: Garage Door Opens
+  description: ''
+  triggers:
+  - device_id: 467926e27ed161ffcc4dbb4dd31a6658
+    domain: cover
+    entity_id: 58a0b12495c4c9a1b105537900e3b2a7
+    type: opening
+    trigger: device
+  conditions: []
+  actions:
+  - action: scene.create
+    metadata: {}
+    data:
+      snapshot_entities:
+      - switch.garage_lights_2
+      - switch.exterior_garage_lights_2
+      scene_id: temp_garage_lights
+    enabled: false
+  - type: turn_on
+    device_id: 1f90e30d6bf48835bc58ef1458cd86bb
+    entity_id: 4b8eba9d402d43000ce1595b61f27fbf
+    domain: switch
+    enabled: false
+  - type: turn_on
+    device_id: 278676596e2d8c388c77febb73dfa567
+    entity_id: aeb4400672dfd4ef2e9f72136ffe43a8
+    domain: switch
+    enabled: false
+  mode: single
+- id: '1746388889579'
+  alias: Close Idle Garage
+  description: ''
+  triggers:
+  - device_id: 467926e27ed161ffcc4dbb4dd31a6658
+    domain: cover
+    entity_id: 58a0b12495c4c9a1b105537900e3b2a7
+    type: opened
+    trigger: device
+    for:
+      hours: 0
+      minutes: 10
+      seconds: 0
+  - device_id: 467926e27ed161ffcc4dbb4dd31a6658
+    domain: lock
+    entity_id: 61ba1b072c5d1f162a8155d99f12c13d
+    type: unlocked
+    trigger: device
+    for:
+      hours: 0
+      minutes: 1
+      seconds: 0
+  conditions:
+  - condition: device
+    device_id: 467926e27ed161ffcc4dbb4dd31a6658
+    domain: lock
+    entity_id: 61ba1b072c5d1f162a8155d99f12c13d
+    type: is_unlocked
+  actions:
+  - device_id: 467926e27ed161ffcc4dbb4dd31a6658
+    domain: cover
+    entity_id: 58a0b12495c4c9a1b105537900e3b2a7
+    type: close
+  - delay:
+      hours: 0
+      minutes: 1
+      seconds: 0
+      milliseconds: 0
+    enabled: false
+  - action: scene.turn_on
+    target:
+      entity_id: scene.temp_garage_lights
+    data: {}
+    enabled: false
+  - action: scene.delete
+    target:
+      entity_id: scene.temp_garage_lights
+    data: {}
+    enabled: false
+  mode: single

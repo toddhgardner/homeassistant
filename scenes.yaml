@@ -1,0 +1,25 @@
+- id: '1736729215236'
+  name: Hot tub
+  entities:
+    switch.outdoor_double_plug:
+      friendly_name: 'Back Patio Heat Mats '
+      state: 'off'
+    switch.outdoor_double_plug_1:
+      friendly_name: Back Patio Heat Mats (1)
+      state: 'off'
+    switch.outdoor_double_plug_2:
+      friendly_name: Back Patio Heat Mats (2)
+      state: 'off'
+  icon: mdi:hot-tub
+  metadata: {}
+- id: '1741469000978'
+  name: Garage Lights
+  entities:
+    switch.garage_lights_2:
+      friendly_name: 'Garage Lights '
+      state: 'on'
+    switch.exterior_garage_lights_2:
+      friendly_name: 'Exterior Garage Lights '
+      state: 'on'
+  icon: mdi:globe-light-outline
+  metadata: {}
