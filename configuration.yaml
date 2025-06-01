@@ -1,4 +1,4 @@
-
+---
 # Loads default set of integrations. Do not remove.
 default_config:
 
@@ -10,7 +10,5 @@ automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 
-input_boolean:
-  kitchen_freezer_notify:
-    name: Kitchen Freezer Notify
-    icon: mdi:alert
+homeassistant:
+  packages: !include_dir_named packages

@@ -1,0 +1,19 @@
+---
+### Notifications ###
+
+notify:
+  - name: Info
+    platform: group
+    services:
+      - service: mobile_app_todds_iphone
+  - name: Warning
+    platform: group
+    services:
+      - service: mobile_app_todds_iphone
+      #- service: mobile_app_erins_iphone
+  - name: Critical
+    platform: group
+    services:
+      - service: mobile_app_todds_iphone
+      #- service: mobile_app_erins_iphone
+      #- service: gmail_alert
