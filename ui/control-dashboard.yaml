@@ -1,0 +1,46 @@
+views:
+  - title: Alerts
+    path: alerts
+    icon: mdi:alert
+    cards:
+      - type: custom:button-card
+        entity: input_boolean.kitchen_refrigerator_alert_enabled
+        name: Kitchen Refrigerator Alerts
+        show_state: true
+        show_label: true
+        label: |
+          [[[
+            return `Temp: ${states['sensor.kitchen_refrigerator_sensor_air_temperature'].state}°F`;
+          ]]]
+
+      - type: entities
+        title: 🔔 Alert Controls
+        show_header_toggle: false
+        entities:
+          - entity: input_boolean.kitchen_refrigerator_alert_enabled
+            name: Kitchen Refrigerator Alerts
+            secondary_info: last-changed
+
+      - type: entities
+        title: 🔔 Alert Controls
+        show_header_toggle: false
+        entities:
+          - entity: input_boolean.kitchen_refrigerator_alert_enabled
+            name: Kitchen Refrigerator Alerts
+            secondary_info: >
+              Temp: {{ states('sensor.kitchen_refrigerator_sensor_air_temperature') }}°F
+
+      - type: entities
+        title: 🔔 Alert Controls & Status
+        show_header_toggle: false
+        entities:
+          - type: section
+            label: Controls
+          - entity: input_boolean.kitchen_refrigerator_alert_enabled
+            name: Kitchen Refrigerator Alerts
+            secondary_info: last-changed
+          - type: section
+            label: Current Status
+          - entity: sensor.kitchen_refrigerator_sensor_air_temperature
+            name: Refrigerator Temperature
+            icon: mdi:thermometer

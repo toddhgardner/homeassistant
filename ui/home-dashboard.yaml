@@ -1,11 +1,36 @@
 views:
   - title: Home
-    sections:
-      - type: grid
-        cards:
-          - show_current: true
-            show_forecast: true
-            type: weather-forecast
-            entity: weather.forecast_home
-            forecast_type: hourly
-            forecast_slots: 3
+    path: home
+    icon: mdi.grid
+    cards:
+      # Alert Management
+      - type: conditional
+        conditions:
+          - entity: alert.kitchen_refigerator_crit_alert_active
+            state: "idle"
+        card:
+          type: entities
+          title: 🚨 Active Alerts
+          state_color: true
+          entities:
+            - entity: alert.kitchen_refigerator_crit_alert_active
+              name: Kitchen Refrigerator Temperature Alert
+              secondary_info: last-changed
+            - entity: sensor.kitchen_refrigerator_sensor_air_temperature
+              name: Current Temperature
+              icon: mdi:thermometer
+            - type: button
+              name: Acknowledge Alert
+              action_name: ACKNOWLEDGE
+              tap_action:
+                action: call-service
+                service: alert.turn_off
+                service_data:
+                  entity_id: alert.kitchen_refigerator_crit_alert_active
+
+      - show_current: true
+        show_forecast: true
+        type: weather-forecast
+        entity: weather.forecast_home
+        forecast_type: hourly
+        forecast_slots: 5

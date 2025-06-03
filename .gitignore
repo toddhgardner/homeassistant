@@ -24,6 +24,7 @@ custom_components
 themes
 blueprints
 image
+www
 
 .HA_VERSION
 .cloud

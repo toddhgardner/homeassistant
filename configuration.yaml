@@ -15,6 +15,11 @@ homeassistant:
 
 lovelace:
   mode: yaml
+
+  resources:
+    - url: /hacsfiles/button-card/button-card.js
+      type: module
+
   dashboards:
     home-dashboard:
       mode: yaml
@@ -23,3 +28,10 @@ lovelace:
       icon: mdi:home
       show_in_sidebar: true
       require_admin: false
+    control-dashboard:
+      mode: yaml
+      filename: /config/ui/control-dashboard.yaml
+      title: Control
+      icon: mdi:application-cog
+      show_in_sidebar: true
+      require_admin: true
