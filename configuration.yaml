@@ -12,3 +12,14 @@ scene: !include scenes.yaml
 
 homeassistant:
   packages: !include_dir_named packages
+
+lovelace:
+  mode: yaml
+  dashboards:
+    home-dashboard:
+      mode: yaml
+      filename: /config/ui/home-dashboard.yaml
+      title: Home
+      icon: mdi:home
+      show_in_sidebar: true
+      require_admin: false
