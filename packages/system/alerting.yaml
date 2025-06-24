@@ -1,0 +1,42 @@
+---
+### Alerting ###
+
+template:
+  ##############################################################################
+  # Alert Counters
+  ##############################################################################
+  - sensor:
+      - name: Active Crit Alerts Count
+        state: >
+          {% set alerts = states.alert | selectattr('entity_id', 'match', '^alert.*_crit_alert_active$') | list %}
+          {{ alerts | rejectattr('state', 'in', ['off', 'idle']) | list | length }}
+        attributes:
+          active_alerts: >
+            {% set alerts = states.alert | selectattr('entity_id', 'match', '^alert.*_crit_alert_active$') | list %}
+            {{ alerts | rejectattr('state', 'in', ['off', 'idle']) | map(attribute='entity_id') | list }}
+      ##########################################################################
+      - name: Active Warn Alerts Count
+        state: >
+          {% set alerts = states.alert | selectattr('entity_id', 'match', '^alert.*_warn_alert_active$') | list %}
+          {{ alerts | rejectattr('state', 'in', ['off', 'idle']) | list | length }}
+        attributes:
+          active_alerts: >
+            {% set alerts = states.alert | selectattr('entity_id', 'match', '^alert.*_warn_alert_active$') | list %}
+            {{ alerts | rejectattr('state', 'in', ['off', 'idle']) | map(attribute='entity_id') | list }}
+
+notify:
+  - name: Info
+    platform: group
+    services:
+      - service: mobile_app_todds_iphone
+  - name: Warning
+    platform: group
+    services:
+      - service: mobile_app_todds_iphone
+      #- service: mobile_app_erins_iphone
+  - name: Critical
+    platform: group
+    services:
+      - service: mobile_app_todds_iphone
+      #- service: mobile_app_erins_iphone
+      #- service: gmail_alert

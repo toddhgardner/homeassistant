@@ -1,0 +1,68 @@
+---
+### Garage ###
+
+input_boolean:
+  ##############################################################################
+  garage_double_auto_close_enabled:
+    name: Garage Double Auto-Close Enabled
+    icon: mdi:garage-open-variant
+  ##############################################################################
+  garage_double_open_alert_enabled:
+    name: Garage Double Open Alert Enabled
+    icon: mdi:garage-alert-variant
+  ##############################################################################
+
+automation:
+  ##############################################################################
+  - id: garage_double_auto_close
+    alias: Garage Double Auto Close
+    description: "Automatically close double garage door if left open for 10 minutes."
+    triggers:
+      - trigger: state
+        entity_id: cover.konnected_f0f5bd514400_garage_door
+        to: "open"
+        for:
+          hours: 0
+          minutes: 10
+          seconds: 0
+    conditions:
+      - condition: state
+        entity_id: input_boolean.garage_double_auto_close_enabled
+        state: "on"
+      - condition: state
+        entity_id: lock.konnected_f0f5bd514400_lock
+        state: "unlocked"
+    actions:
+      - action: cover.close_cover
+        target:
+          entity_id: cover.konnected_f0f5bd514400_garage_door
+    mode: single
+  ##############################################################################
+
+template:
+  ##############################################################################
+  - binary_sensor:
+      - name: Garage Double Open Alert
+        state: >
+          {{ (states('cover.konnected_f0f5bd514400_garage_door') == 'open') 
+            and is_state('input_boolean.garage_double_open_alert_enabled', 'on')
+            and (as_timestamp(now()) - as_timestamp(states.cover.konnected_f0f5bd514400_garage_door.last_changed) > 3600) }}
+        availability: "{{ states('cover.konnected_f0f5bd514400_garage_door') not in ['unavailable', 'unknown', 'none'] }}"
+  ##############################################################################
+
+alert:
+  ##############################################################################
+  garage_double_open_warn_alert_active:
+    name: Garage Double Open
+    entity_id: binary_sensor.garage_double_open_alert
+    state: "on"
+    repeat:
+      - 60
+      - 120
+    can_acknowledge: true
+    skip_first: false
+    title: "(Warn) Garage Door Open"
+    message: "Double Garage has been open since {{ states.cover.konnected_f0f5bd514400_garage_door.last_changed.strftime('%a %b %-d, %-I:%M %p') }}"
+    done_message: "RESOLVED: Double Garage closed at {{ now().strftime('%a %b %-d, %-I:%M %p') }}"
+    notifiers:
+      - Warning

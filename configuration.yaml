@@ -19,19 +19,5 @@ lovelace:
   resources:
     - url: /hacsfiles/button-card/button-card.js
       type: module
-
-  dashboards:
-    home-dashboard:
-      mode: yaml
-      filename: /config/ui/home-dashboard.yaml
-      title: Home
-      icon: mdi:home
-      show_in_sidebar: true
-      require_admin: false
-    control-dashboard:
-      mode: yaml
-      filename: /config/ui/control-dashboard.yaml
-      title: Control
-      icon: mdi:application-cog
-      show_in_sidebar: true
-      require_admin: true
+    - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
+      type: module

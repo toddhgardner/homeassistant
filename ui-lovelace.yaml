@@ -1,0 +1,178 @@
+### Main Dashboard ###
+
+title: Home
+icon: mdi:home
+views:
+  - title: Home
+    path: home
+    icon: mdi:home
+    cards:
+      ##########################################################################
+      # Alert Management
+      ##########################################################################
+      - type: conditional
+        conditions:
+          - condition: numeric_state
+            entity: sensor.active_crit_alerts_count
+            above: 0
+        card:
+          type: custom:auto-entities
+          show_empty: true
+          card:
+            type: entities
+            title: 🚨 Critical Alerts
+            card_mod:
+              style: |
+                ha-card {
+                  background-color: red;
+                  --primary-text-color: white;
+                  --secondary-text-color: white;
+                  --paper-item-icon-color: white;
+                }
+          filter:
+            include:
+              - entity_id: /^alert(.).*_crit_alert_active/
+                options:
+                  secondary_info: last-changed
+            exclude:
+              - state: "off"
+              - state: idle
+          sort:
+            method: last_changed
+            reverse: true
+      ##########################################################################
+      - type: conditional
+        conditions:
+          - condition: numeric_state
+            entity: sensor.active_warn_alerts_count
+            above: 0
+        card:
+          type: custom:auto-entities
+          show_empty: true
+          card:
+            type: entities
+            title: ⚠️ Warnings
+            card_mod:
+              style: |
+                ha-card {
+                  background-color: orange;
+                  --primary-text-color: white;
+                  --secondary-text-color: white;
+                  --paper-item-icon-color: white;
+                }
+          filter:
+            include:
+              - entity_id: /^alert(.).*_warn_alert_active/
+                options:
+                  secondary_info: last-changed
+            exclude:
+              - state: "off"
+              - state: idle
+          sort:
+            method: last_changed
+            reverse: true
+      ##########################################################################
+      # People Status
+      ##########################################################################
+      - type: glance
+        title: 👥 People
+        columns: 4
+        entities:
+          - person.todd_gardner
+          - person.erin
+          - person.isabelle
+          - person.samantha_gardner
+      ##########################################################################
+      # Entry Controls
+      ##########################################################################
+      - type: horizontal-stack
+        cards:
+          - type: custom:button-card
+            entity: lock.lavender_circle
+            name: Front Door
+            icon: mdi:door-closed-lock
+            tap_action:
+              action: call-service
+              service: |
+                [[[
+                  if (entity.state === 'locked') return 'lock.unlock';
+                  return 'lock.lock';
+                ]]]
+              service_data:
+                entity_id: lock.lavender_circle
+            color_type: card
+            color: auto
+            size: 15%
+            styles:
+              card:
+                - height: 80px
+              name:
+                - font-size: 14px
+              icon:
+                - color: |
+                    [[[
+                      if (entity.state === 'unlocked') return 'green';
+                      if (entity.state === 'locking' || entity.state === 'unlocking') return 'orange';
+                      return 'red';
+                    ]]]
+          - type: custom:button-card
+            entity: cover.konnected_f0f5bd514400_garage_door # Your garage door entity
+            name: Garage Door
+            icon: mdi:garage-open-variant
+            tap_action:
+              action: call-service
+              service: cover.toggle
+              service_data:
+                entity_id: cover.konnected_f0f5bd514400_garage_door
+            color_type: card
+            color: auto
+            size: 15%
+            styles:
+              card:
+                - height: 80px
+              name:
+                - font-size: 14px
+              icon:
+                - color: |
+                    [[[
+                      if (entity.state === 'open') return 'green';
+                      if (entity.state === 'opening' || entity.state === 'closing') return 'orange';
+                      return 'red';
+                    ]]]
+      ##########################################################################
+
+  ##############################################################################
+  # Control Tab
+  ##############################################################################
+  - title: Controls
+    path: controls
+    icon: mdi:cog
+    cards:
+      ##########################################################################
+      - type: custom:button-card
+        entity: input_boolean.garage_double_auto_close_enabled
+        name: Garage Double Auto-Close
+        color_type: card
+        show_state: true
+        show_last_changed: true
+      ##########################################################################
+      - type: custom:button-card
+        entity: input_boolean.garage_double_open_alert_enabled
+        name: Garage Double Open Alerts
+        color_type: card
+        show_state: true
+        show_last_changed: true
+      ##########################################################################
+      - type: custom:button-card
+        entity: input_boolean.kitchen_refrigerator_temp_alert_enabled
+        name: Kitchen Refrigerator Alerts
+        color_type: card
+        show_state: true
+        show_last_changed: true
+      ##########################################################################
+      - type: custom:button-card
+        entity: input_boolean.device_battery_low_alert_enabled
+        name: Device Battery Low Alerts
+        color_type: card
+        show_state: true
+        show_last_changed: true
