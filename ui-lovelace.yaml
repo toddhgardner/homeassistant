@@ -164,6 +164,13 @@ views:
         show_last_changed: true
       ##########################################################################
       - type: custom:button-card
+        entity: input_boolean.garage_freezer_temp_alert_enabled
+        name: Garage Freezer Alerts
+        color_type: card
+        show_state: true
+        show_last_changed: true
+      ##########################################################################
+      - type: custom:button-card
         entity: input_boolean.kitchen_refrigerator_temp_alert_enabled
         name: Kitchen Refrigerator Alerts
         color_type: card

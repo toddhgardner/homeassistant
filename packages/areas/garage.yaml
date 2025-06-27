@@ -11,12 +11,17 @@ input_boolean:
     name: Garage Double Open Alert Enabled
     icon: mdi:garage-alert-variant
   ##############################################################################
+  garage_freezer_temp_alert_enabled:
+    name: Garage Freezer Alert Enabled
+    icon: mdi:fridge-alert
+  ################################################################################
 
 automation:
   ##############################################################################
   - id: garage_double_auto_close
     alias: Garage Double Auto Close
-    description: "Automatically close double garage door if left open for 10 minutes."
+    description: "Close double garage door if left open for 10 minutes."
+    label: "todd"
     triggers:
       - trigger: state
         entity_id: cover.konnected_f0f5bd514400_garage_door
@@ -38,6 +43,50 @@ automation:
           entity_id: cover.konnected_f0f5bd514400_garage_door
     mode: single
   ##############################################################################
+  - id: garage_double_auto_lights
+    alias: Garage Double Auto Lights
+    description: "Turn on garage lights when double garage door is open."
+    triggers:
+      - trigger: state
+        entity_id: cover.konnected_f0f5bd514400_garage_door
+        to: "opening"
+        id: double_garage_door_opening
+      - trigger: state
+        entity_id: cover.konnected_f0f5bd514400_garage_door
+        to: "closed"
+        id: double_garage_door_closed
+    actions:
+      - choose:
+          # When door is opening - save current state and turn on lights
+          - conditions:
+              - condition: trigger
+                id: double_garage_door_opening
+            sequence:
+              - action: scene.create
+                data:
+                  snapshot_entities:
+                    - switch.garage_lights
+                    - switch.outside_garage_lights
+                  scene_id: garage_lights_previous_state
+              - action: switch.turn_on
+                target:
+                  entity_id:
+                    - switch.garage_lights
+                    - switch.outside_garage_lights
+          # When door is closed - wait 5 minutes then restore previous state
+          - conditions:
+              - condition: trigger
+                id: double_garage_door_closed
+            sequence:
+              - delay:
+                  minutes: 5
+              - action: scene.turn_on
+                target:
+                  entity_id: scene.garage_lights_previous_state
+              - action: scene.delete
+                target:
+                  entity_id: scene.garage_lights_previous_state
+    mode: restart
 
 template:
   ##############################################################################
@@ -45,9 +94,16 @@ template:
       - name: Garage Double Open Alert
         state: >
           {{ (states('cover.konnected_f0f5bd514400_garage_door') == 'open') 
-            and is_state('input_boolean.garage_double_open_alert_enabled', 'on')
-            and (as_timestamp(now()) - as_timestamp(states.cover.konnected_f0f5bd514400_garage_door.last_changed) > 3600) }}
+            and is_state('input_boolean.garage_double_open_alert_enabled', 'on') 
+            and (as_timestamp(now()) - as_timestamp(states.cover.konnected_f0f5bd514400_garage_door.last_changed) > 3600) }} # 3600 = 60 minutes
         availability: "{{ states('cover.konnected_f0f5bd514400_garage_door') not in ['unavailable', 'unknown', 'none'] }}"
+  ##############################################################################
+  - binary_sensor:
+      - name: Garage Freezer Temp Alert
+        state: >
+          {{ (states('sensor.garage_freezer_monitor_temperature') | int(0) < -10 or states('sensor.garage_freezer_monitor_temperature') | int(0) > 10) 
+            and is_state('input_boolean.garage_freezer_temp_alert_enabled', 'on') }}
+        availability: "{{ states('sensor.garage_freezer_monitor_temperature') not in ['unavailable', 'unknown', 'none'] }}"
   ##############################################################################
 
 alert:
@@ -66,3 +122,20 @@ alert:
     done_message: "RESOLVED: Double Garage closed at {{ now().strftime('%a %b %-d, %-I:%M %p') }}"
     notifiers:
       - Warning
+  ##############################################################################
+  garage_freezer_crit_alert_active:
+    name: Garage Freezer Temp
+    entity_id: binary_sensor.garage_freezer_temp_alert
+    state: "on"
+    repeat:
+      - 15
+      - 30
+      - 60
+      - 120
+    can_acknowledge: true
+    skip_first: false
+    title: "(CRIT) Garage Freezer Temp"
+    message: "Temp is {{ states('sensor.garage_freezer_monitor_temperature') }}° F at {{ as_timestamp(states.sensor.garage_freezer_monitor_temperature.last_changed) | timestamp_custom('%a %b %-d, %-I:%M %p') }}"
+    done_message: "RESOLVED Garage Freezer Temp at {{ as_timestamp(states.binary_sensor.garage_freezer_temp_alert.last_changed) | timestamp_custom('%a %b %-d, %-I:%M %p') }}"
+    notifiers:
+      - Critical
