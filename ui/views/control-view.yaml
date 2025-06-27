@@ -1,0 +1,39 @@
+title: Controls
+path: controls
+icon: mdi:cog
+cards:
+  ##############################################################################
+  # Alert Controls
+  ##############################################################################
+  - type: custom:auto-entities
+    card:
+      type: vertical-stack
+      title: "🚨 Alerts"
+    card_param: cards
+    filter:
+      include:
+        - entity_id: "input_boolean.*_alert_enabled"
+          options:
+            type: custom:button-card
+            template: control_toggle
+    sort:
+      method: friendly_name
+      reverse: false
+
+  ##############################################################################
+  # Automation Controls
+  ##############################################################################
+  - type: custom:auto-entities
+    card:
+      type: vertical-stack
+      title: "⚙️ Automations"
+    card_param: cards
+    filter:
+      include:
+        - entity_id: "input_boolean.*_auto_enabled"
+          options:
+            type: custom:button-card
+            template: control_toggle
+    sort:
+      method: friendly_name
+      reverse: false

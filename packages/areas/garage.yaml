@@ -3,9 +3,9 @@
 
 input_boolean:
   ##############################################################################
-  garage_double_auto_close_enabled:
+  garage_double_close_auto_enabled:
     name: Garage Double Auto-Close Enabled
-    icon: mdi:garage-open-variant
+    icon: mdi:garage-variant
   ##############################################################################
   garage_double_open_alert_enabled:
     name: Garage Double Open Alert Enabled
@@ -21,7 +21,6 @@ automation:
   - id: garage_double_auto_close
     alias: Garage Double Auto Close
     description: "Close double garage door if left open for 10 minutes."
-    label: "todd"
     triggers:
       - trigger: state
         entity_id: cover.konnected_f0f5bd514400_garage_door
@@ -32,7 +31,7 @@ automation:
           seconds: 0
     conditions:
       - condition: state
-        entity_id: input_boolean.garage_double_auto_close_enabled
+        entity_id: input_boolean.garage_double_close_auto_enabled
         state: "on"
       - condition: state
         entity_id: lock.konnected_f0f5bd514400_lock

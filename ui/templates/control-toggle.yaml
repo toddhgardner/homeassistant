@@ -1,0 +1,37 @@
+color_type: card
+layout: icon_name_state2nd
+show_state: true
+show_last_changed: true
+styles:
+  grid:
+    - grid-template-areas: '"i n" "i s" "i l"'
+    - grid-template-columns: 80px 1fr
+    - grid-template-rows: 1fr 1fr 1fr
+  card:
+    - padding: 12px
+    - background-color: |
+        [[[
+          if (entity.state === 'on') return 'var(--green-color, #4CAF50)';
+          return 'var(--red-color, #f44336)';
+        ]]]
+    - color: white
+  icon:
+    - width: 100%;
+    - margin-right: 10px
+  name:
+    - justify-self: left
+    - align-self: center
+    - font-size: 16px
+    - font-weight: bold
+  state:
+    - justify-self: left
+    - align-self: center
+    - font-size: 14px;
+  label:
+    - justify-self: left
+    - align-self: center
+    - font-size: 14px;
+tap_action:
+  action: toggle
+hold_action:
+  action: more-info

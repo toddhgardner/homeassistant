@@ -2,6 +2,10 @@
 
 title: Home
 icon: mdi:home
+
+button_card_templates:
+  control_toggle: !include ui/templates/control-toggle.yaml
+
 views:
-  - !include views/home-view.yaml
-  - !include views/control-view.yaml
+  - !include ui/views/home-view.yaml
+  - !include ui/views/control-view.yaml
