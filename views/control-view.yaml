@@ -1,0 +1,39 @@
+title: Controls
+path: controls
+icon: mdi:cog
+cards:
+  ##########################################################################
+  - type: custom:button-card
+    entity: input_boolean.garage_double_auto_close_enabled
+    name: Garage Double Auto-Close
+    color_type: card
+    show_state: true
+    show_last_changed: true
+  ##########################################################################
+  - type: custom:button-card
+    entity: input_boolean.garage_double_open_alert_enabled
+    name: Garage Double Open Alerts
+    color_type: card
+    show_state: true
+    show_last_changed: true
+  ##########################################################################
+  - type: custom:button-card
+    entity: input_boolean.garage_freezer_temp_alert_enabled
+    name: Garage Freezer Alerts
+    color_type: card
+    show_state: true
+    show_last_changed: true
+  ##########################################################################
+  - type: custom:button-card
+    entity: input_boolean.kitchen_refrigerator_temp_alert_enabled
+    name: Kitchen Refrigerator Alerts
+    color_type: card
+    show_state: true
+    show_last_changed: true
+  ##########################################################################
+  - type: custom:button-card
+    entity: input_boolean.device_battery_low_alert_enabled
+    name: Device Battery Low Alerts
+    color_type: card
+    show_state: true
+    show_last_changed: true
