@@ -40,7 +40,7 @@ automation:
       - action: cover.close_cover
         target:
           entity_id: cover.konnected_f0f5bd514400_garage_door
-    mode: single
+    mode: restart
   ##############################################################################
   - id: garage_double_auto_lights
     alias: Garage Double Auto Lights
@@ -93,9 +93,10 @@ template:
       - name: Garage Double Open Alert
         state: >
           {{ (states('cover.konnected_f0f5bd514400_garage_door') == 'open') 
-            and is_state('input_boolean.garage_double_open_alert_enabled', 'on') 
-            and (as_timestamp(now()) - as_timestamp(states.cover.konnected_f0f5bd514400_garage_door.last_changed) > 3600) }} # 3600 = 60 minutes
+            and is_state('input_boolean.garage_double_open_alert_enabled', 'on') }}
         availability: "{{ states('cover.konnected_f0f5bd514400_garage_door') not in ['unavailable', 'unknown', 'none'] }}"
+        delay_on: 
+          minutes: 10
   ##############################################################################
   - binary_sensor:
       - name: Garage Freezer Temp Alert
@@ -103,6 +104,8 @@ template:
           {{ (states('sensor.garage_freezer_monitor_temperature') | int(0) < -10 or states('sensor.garage_freezer_monitor_temperature') | int(0) > 10) 
             and is_state('input_boolean.garage_freezer_temp_alert_enabled', 'on') }}
         availability: "{{ states('sensor.garage_freezer_monitor_temperature') not in ['unavailable', 'unknown', 'none'] }}"
+        delay_on: 
+          minutes: 10
   ##############################################################################
 
 alert:
