@@ -13,11 +13,21 @@ scene: !include scenes.yaml
 homeassistant:
   packages: !include_dir_named packages
 
+################################################################################
+# UI Configuration
+################################################################################
 lovelace:
-  mode: yaml
+  mode: storage
 
   resources:
     - url: /hacsfiles/button-card/button-card.js
       type: module
     - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
       type: module
+
+  ##############################################################################
+  dashboards:
+    lvndr-0:
+      mode: yaml
+      title: LVNDR
+      filename: ui/dashboards/lvndr-dashboard.yaml
