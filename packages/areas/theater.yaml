@@ -1,0 +1,97 @@
+---
+### Theater ###
+
+scene:
+  ##############################################################################
+  - id: theater_lights_paused
+    name: Theater Lights Paused
+    icon: mdi:pause-circle
+    entities:
+      light.theater_main_lights:
+        state: "on"
+        brightness: 25
+      light.theater_sconces:
+        state: "on"
+        brightness: 255
+
+  ##############################################################################
+  - id: theater_lights_playing
+    name: Theater Lights Playing
+    icon: mdi:play-circle
+    entities:
+      light.theater_main_lights:
+        state: "off"
+      light.theater_sconces:
+        state: "on"
+        brightness: 51
+
+  ##############################################################################
+  - id: theater_lights_full
+    name: Theater Lights Full
+    icon: mdi:lightbulb-on
+    entities:
+      light.theater_main_lights:
+        state: "on"
+        brightness: 255
+      light.theater_sconces:
+        state: "off"
+
+automation:
+  ##############################################################################
+  - id: theater_auto_pause_lights
+    alias: Theater Auto Pause Lights
+    description: "Set theater-lights-paused scene when Apple TV is paused or idle"
+    triggers:
+      - trigger: state
+        entity_id: media_player.home_theater
+        to: "paused"
+        for:
+          seconds: 1
+      - trigger: state
+        entity_id: media_player.home_theater
+        to: "idle"
+        for:
+          seconds: 1
+    conditions: []
+    actions:
+      - action: scene.turn_on
+        target:
+          entity_id: scene.theater_lights_paused
+        data:
+          transition: 2
+    mode: restart
+
+  ##############################################################################
+  - id: theater_auto_playing_lights
+    alias: Theater Auto Playing Lights
+    description: "Set theater-lights-playing scene when Apple TV starts playing content"
+    triggers:
+      - trigger: state
+        entity_id: media_player.home_theater
+        to: "playing"
+    conditions: []
+    actions:
+      - action: scene.turn_on
+        target:
+          entity_id: scene.theater_lights_playing
+        data:
+          transition: 2
+    mode: restart
+
+  ##############################################################################
+  - id: theater_auto_off_lights
+    alias: Theater Auto Off Lights
+    description: "Set theater-lights-full scene when Apple TV turns off"
+    triggers:
+      - trigger: state
+        entity_id: media_player.home_theater
+        to: "standby"
+    conditions: []
+    actions:
+      - action: scene.turn_on
+        target:
+          entity_id: scene.theater_lights_full
+        data:
+          transition: 2
+    mode: restart
+  ##############################################################################
