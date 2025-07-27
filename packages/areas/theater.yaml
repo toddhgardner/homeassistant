@@ -23,7 +23,7 @@ scene:
         state: "off"
       light.theater_sconces:
         state: "on"
-        brightness: 51
+        brightness: 64
 
   ##############################################################################
   - id: theater_lights_full
@@ -46,12 +46,12 @@ automation:
         entity_id: media_player.home_theater
         to: "paused"
         for:
-          seconds: 1
+          seconds: 2
       - trigger: state
         entity_id: media_player.home_theater
         to: "idle"
         for:
-          seconds: 1
+          seconds: 2
     conditions: []
     actions:
       - action: scene.turn_on
@@ -69,7 +69,13 @@ automation:
       - trigger: state
         entity_id: media_player.home_theater
         to: "playing"
-    conditions: []
+        for:
+          seconds: 2
+    conditions:
+      - condition: state
+        entity_id: media_player.home_theater
+        attribute: media_content_type
+        state: "video"
     actions:
       - action: scene.turn_on
         target:
