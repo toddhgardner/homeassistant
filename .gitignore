@@ -10,6 +10,7 @@ __pycache__
 
 # Passwords and secrets
 secrets.yaml
+*.pem
 
 # Built-in configuration ignores
 #automations.yaml
@@ -21,7 +22,6 @@ blueprints/*/homeassistant
 
 # Ignore vendored stuff
 custom_components
-themes
 blueprints
 image
 www
@@ -30,4 +30,5 @@ www
 .cloud
 .storage
 .ssh
+tts
 
