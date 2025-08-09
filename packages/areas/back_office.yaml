@@ -1,0 +1,35 @@
+---
+### Back Office ###
+
+automation:
+  ##############################################################################
+  - id: back_office_auto_lights
+    alias: Back Office Auto Lights
+    description: "Toggle the wall lighting with the main switch."
+    triggers:
+      - trigger: state
+        entity_id: switch.back_office_lightswitch
+        to: "off"
+        id: back_office_switch_off
+      - trigger: state
+        entity_id: switch.back_office_lightswitch
+        to: "on"
+        id: back_office_switch_on
+    actions:
+      - choose:
+          - conditions:
+              - condition: trigger
+                id: back_office_switch_off
+            sequence:
+              - action: light.turn_off
+                target:
+                  entity_id: light.back_office_decor_lighting
+          - conditions:
+              - condition: trigger
+                id: back_office_switch_on
+            sequence:
+              - action: light.turn_on
+                target:
+                  entity_id: light.back_office_decor_lighting
+    mode: single
+  ##############################################################################
