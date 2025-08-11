@@ -70,12 +70,7 @@ automation:
         entity_id: media_player.home_theater
         to: "playing"
         for:
-          seconds: 2
-    conditions:
-      - condition: state
-        entity_id: media_player.home_theater
-        attribute: media_content_type
-        state: "video"
+          seconds: 10
     actions:
       - action: scene.turn_on
         target:
@@ -92,6 +87,9 @@ automation:
       - trigger: state
         entity_id: media_player.home_theater
         to: "standby"
+      - trigger: state
+        entity_id: media_player.home_theater
+        to: "off"
     conditions: []
     actions:
       - action: scene.turn_on
