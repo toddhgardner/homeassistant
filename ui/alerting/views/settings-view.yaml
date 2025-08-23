@@ -1,0 +1,62 @@
+##############################################################################
+# Alerting Settings
+##############################################################################
+title: SETTINGS
+path: settings
+cards:
+  ##########################################################################
+  # Alert Settings
+  ##########################################################################
+  # - type: entities
+  #   title: ⚙️ Alert Configuration
+  #   entities:
+  #     - type: section
+  #       label: "Enable or disable specific alerts"
+
+  #     - entity: input_boolean.garage_double_open_alert_enabled
+  #       name: Garage Door Open Alerts
+  #       icon: mdi:garage-alert-variant
+
+  #     - entity: input_boolean.garage_double_close_auto_enabled
+  #       name: Garage Auto-Close
+  #       icon: mdi:garage-variant
+
+  #     - entity: input_boolean.garage_freezer_temp_alert_enabled
+  #       name: Freezer Temperature Alerts
+  #       icon: mdi:fridge-alert
+
+  # ##########################################################################
+  # # Notification Groups
+  # ##########################################################################
+  # - type: entities
+  #   title: 📱 Notification Groups
+  #   entities:
+  #     - type: section
+  #       label: "Configure who receives alerts"
+
+  #     - type: custom:text-divider-row
+  #       text: Critical Alerts
+
+  #     - type: attribute
+  #       entity: notify.critical
+  #       attribute: services
+  #       name: Critical Alert Recipients
+  #       icon: mdi:message-alert
+
+  #     - type: custom:text-divider-row
+  #       text: Warning Alerts
+
+  #     - type: attribute
+  #       entity: notify.warning
+  #       attribute: services
+  #       name: Warning Alert Recipients
+  #       icon: mdi:message-text
+
+  #     - type: custom:text-divider-row
+  #       text: Info Alerts
+
+  #     - type: attribute
+  #       entity: notify.info
+  #       attribute: services
+  #       name: Info Alert Recipients
+  #       icon: mdi:message-outline

@@ -1,0 +1,11 @@
+### Main Dashboard ###
+
+title: Home
+icon: mdi:home
+
+# button_card_templates:
+#   control_toggle: !include ../templates/control-toggle.yaml
+
+views:
+  - !include ./views/home-view.yaml
+  - !include ./views/garage-view.yaml

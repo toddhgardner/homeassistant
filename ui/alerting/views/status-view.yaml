@@ -1,0 +1,172 @@
+################################################################################
+# Alerting UI
+# Status View
+#
+# View the current status of alerts in the system
+################################################################################
+---
+title: STATUS
+path: status
+type: sections
+max_columns: 1
+
+################################################################################
+header:
+  card:
+    type: markdown
+    text_only: true
+    content: |-
+      # Alerting Status
+  layout: center
+  badges_position: top
+  badges_wrap: wrap
+
+################################################################################
+# Badges
+################################################################################
+badges:
+  - type: entity
+    entity: sensor.alert_p1_active_count
+    name: P1
+    show_name: true
+    show_state: true
+    show_icon: true
+    color: var(--red-color)
+    visibility:
+      - condition: numeric_state
+        entity: sensor.alert_p1_active_count
+        above: -1
+
+  ##############################################################################
+  - type: entity
+    entity: sensor.alert_p2_active_count
+    name: P2
+    show_name: true
+    show_state: true
+    show_icon: true
+    color: var(--orange-color)
+    visibility:
+      - condition: numeric_state
+        entity: sensor.alert_p2_active_count
+        above: -1
+
+  ##############################################################################
+  - type: entity
+    entity: sensor.alert_p3_active_count
+    name: P3
+    show_name: true
+    show_state: true
+    show_icon: true
+    color: var(--blue-color)
+    visibility:
+      - condition: numeric_state
+        entity: sensor.alert_p3_active_count
+        above: -1
+
+sections:
+  ################################################################################
+  # Section 1 TODO
+  ################################################################################
+  - type: grid
+    cards:
+      - type: custom:auto-entities
+        show_empty: false
+        card:
+          type: vertical-stack
+          title: Active Alerts
+        card_param: cards
+        filter:
+          include:
+            - domain: alert2
+              state: "on"
+              options:
+                type: custom:button-card
+                variables:
+                  entity_id: "[[[ return entity.entity_id; ]]]"
+                styles:
+                  grid:
+                    - grid-template-areas: '"i . ." "i n ack" "i s ." "i l snooze" "i . ."'
+                    - grid-template-columns: 1fr 1fr 1fr
+                    - grid-template-rows: 1fr 1fr 1fr 1fr 1fr
+                name: |
+                  [[[
+                    return entity.attributes.friendly_name || entity.entity_id.split('.')[1];
+                  ]]]
+                show_state: true
+                state_display: |
+                  [[[
+                    const time = new Date(entity.attributes.started_firing_at);
+                    const mins = Math.floor((Date.now() - time) / 60000);
+                    if (mins < 60) return `${mins}m ago`;
+                    const hours = Math.floor(mins / 60);
+                    if (hours < 24) return `${hours}h ago`;
+                    return `${Math.floor(hours / 24)}d ago`;
+                  ]]]
+                show_label: true
+                label: |
+                  [[[
+                    const ackStatus = entity.attributes.is_acked ? "Acknowledged" : "New";
+                    const snoozeStatus = (entity.attributes.notification_control  === 'enabled') ? "Active" : "Snooze"
+                    return `${ackStatus} ${snoozeStatus}`;
+                  ]]]
+                custom_fields:
+                  ack:
+                    card:
+                      type: custom:button-card
+                      name: "Acknowledge"
+                      tap_action:
+                        action: call-service
+                        service: "[[[ return entity.attributes.is_acked ? 'alert2.unack' : 'alert2.ack'; ]]]"
+                        service_data:
+                          entity_id: "[[[ return entity.entity_id; ]]]"
+                  snooze:
+                    card:
+                      type: custom:button-card
+                      name: "Snooze"
+                      tap_action:
+                        action: call-service
+                        service: alert2.notification_control
+                        service_data:
+                          entity_id: "[[[ return entity.entity_id; ]]]"
+                          ack_at_snooze_start: false
+                          enable: true
+                          snooze_until: |
+                            [[[ 
+                              if (entity.attributes.notification_control  === 'enabled') {
+                                const now = new Date();
+                                now.setTime(now.getTime() + (2*60*1000));
+                                return now.toISOString();
+                              }
+                              else {
+                                return undefined;
+                              }
+                            ]]]
+
+                # fuck around with this later once it works.
+                # styles:
+                #   card:
+                # - background-color: |
+                #     [[[
+                #       if (entity.attributes.priority === 'high') return 'rgba(255, 0, 0, 0.2)';
+                #       if (entity.attributes.priority === 'medium') return 'rgba(255, 152, 0, 0.2)';
+                #       return 'rgba(33, 150, 243, 0.2)';
+                #     ]]]
+                # - border: |
+                #     [[[
+                #       if (entity.attributes.priority === 'high') return '2px solid red';
+                #       if (entity.attributes.priority === 'medium') return '2px solid orange';
+                #       return '2px solid #2196f3';
+                #     ]]]
+                # icon:
+                #   - color: white
+                tap_action:
+                  action: call-service
+                  service: alert2.ack
+                  service_data:
+                    entity_id: "[[[ return entity.entity_id; ]]]"
+                hold_action:
+                  action: more-info
+        sort:
+          method: attribute
+          attribute: data.severity
+          # reverse: false # high priority first

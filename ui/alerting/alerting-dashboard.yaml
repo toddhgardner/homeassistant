@@ -1,0 +1,9 @@
+title: Alerting
+icon: mdi:home-alert-outline
+
+# button_card_templates: !include ../templates/alert-card.yaml
+
+views:
+  - !include ./views/status-view.yaml
+  # - !include ./views/settings-view.yaml
+  - !include ./views/test-view.yaml

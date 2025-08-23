@@ -1,42 +1,165 @@
+################################################################################
+# Alerting
+#
+# Core alerting and notification functionality. Depends on the "alert2" package
+# from HACS.
+################################################################################
 ---
-### Alerting ###
+notify:
+  ##############################################################################
+  # Notification Levels
+  ##############################################################################
+  - name: p1_critical
+    platform: group
+    services:
+      - service: mobile_app_todds_iphone
+      #- service: mobile_app_erins_iphone
+
+  ##############################################################################
+  - name: p2_warning
+    platform: group
+    services:
+      - service: mobile_app_todds_iphone
+
+  ##############################################################################
+  - name: p3_info
+    platform: group
+    services:
+      - service: persistent_notification
+
+automation:
+  - id: alert_action_handler
+    alias: Notification Action Handler
+    description: "Handle notification action events and execute the correct system action."
+    mode: parallel
+    max: 10
+
+    triggers:
+      - trigger: event
+        event_type: mobile_app_notification_action
+
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.event.data.action.startswith('alert2.') }}
+
+    actions:
+      - variables:
+          action_parts: "{{ trigger.event.data.action.split('.') }}"
+          action_entity_id: "{{ action_parts[0] + '.' + action_parts[1] }}"
+          action_command: "{{ action_parts[2] }}"
+
+      - choose:
+          # Acknowledge specific alert
+          - conditions:
+              - condition: template
+                value_template: "{{ action_command == 'ack' }}"
+            sequence:
+              - action: alert2.ack
+                target:
+                  entity_id: "{{ action_entity_id }}"
+
+          # Snooze all alerts for 2 hours
+          - conditions:
+              - condition: template
+                value_template: "{{ action_command == 'snooze' }}"
+            sequence:
+              - action: alert2.notification_control
+                data:
+                  entity_id: "{{ action_entity_id }}"
+                  ack_at_snooze_start: false
+                  enable: true
+                  snooze_until: "{{ (now() + timedelta(minutes=2)).isoformat() }}"
+
+################################################################################
+# Alerting Defaults for mobile actions
+# This is wonky for Alert2 v1.15.1. It uses python string interpretation, so we
+# can't send regular YAML, we need to send a string. Values can only resolve to
+# strings, so we can't use `destructive: true`
+################################################################################
+alert2:
+  defaults:
+    data:
+      tag: "'{{ alert_entity_id }}'"
+      url: "/1-alerting/status"
+      actions: |
+        [
+          {
+            "action": "{{ alert_entity_id }}.ack",
+            "title": "Acknowledge",
+            "icon": "sfsymbols:checkmark.square.fill",
+          },
+          {
+            "action": "{{ alert_entity_id }}.snooze",
+            "title": "Snooze 2 Hours",
+            "icon": "sfsymbols:bell.slash.fill",
+          },
+        ]
 
 template:
   ##############################################################################
-  # Alert Counters
+  # Alert Counts for UI
   ##############################################################################
   - sensor:
-      - name: Active Crit Alerts Count
+      - name: "Alert P1 Active Count"
+        icon: mdi:alert-box-outline
         state: >
-          {% set alerts = states.alert | selectattr('entity_id', 'match', '^alert.*_crit_alert_active$') | list %}
-          {{ alerts | rejectattr('state', 'in', ['off', 'idle']) | list | length }}
-        attributes:
-          active_alerts: >
-            {% set alerts = states.alert | selectattr('entity_id', 'match', '^alert.*_crit_alert_active$') | list %}
-            {{ alerts | rejectattr('state', 'in', ['off', 'idle']) | map(attribute='entity_id') | list }}
-      ##########################################################################
-      - name: Active Warn Alerts Count
-        state: >
-          {% set alerts = states.alert | selectattr('entity_id', 'match', '^alert.*_warn_alert_active$') | list %}
-          {{ alerts | rejectattr('state', 'in', ['off', 'idle']) | list | length }}
-        attributes:
-          active_alerts: >
-            {% set alerts = states.alert | selectattr('entity_id', 'match', '^alert.*_warn_alert_active$') | list %}
-            {{ alerts | rejectattr('state', 'in', ['off', 'idle']) | map(attribute='entity_id') | list }}
+          {{ states.alert2 
+            | selectattr('attributes.priority', 'eq', 'high')
+            | selectattr('state', 'eq', 'on') 
+            | list | length }}
 
-notify:
-  - name: Info
-    platform: group
-    services:
-      - service: mobile_app_todds_iphone
-  - name: Warning
-    platform: group
-    services:
-      - service: mobile_app_todds_iphone
-      #- service: mobile_app_erins_iphone
-  - name: Critical
-    platform: group
-    services:
-      - service: mobile_app_todds_iphone
-      #- service: mobile_app_erins_iphone
-      #- service: gmail_alert
+      ##########################################################################
+      - name: "Alert P2 Active Count"
+        icon: mdi:alert-outline
+        state: >
+          {{ states.alert2 
+            | selectattr('attributes.priority', 'eq', 'medium')
+            | selectattr('state', 'eq', 'on') 
+            | list | length }}
+
+      ##########################################################################
+      - name: "Alert P3 Active Count"
+        icon: mdi:information-outline
+        state: >
+          {{ states.alert2 
+            | selectattr('attributes.priority', 'eq', 'low')
+            | selectattr('state', 'eq', 'on') 
+            | list | length }}
+
+# automation:
+#   ##############################################################################
+#   # Send P2 Alerts from overnight
+#   ##############################################################################
+#   - id: send_overnight_p2_notifications
+#     alias: "Send P2 Notifications from Overnight"
+#     description: "Send notifications for P2 alerts that triggered during quiet hours."
+#     mode: single
+#     triggers:
+#       - trigger: time
+#         at: "09:00:00"
+#     conditions:
+#       - condition: numeric_state
+#         entity_id: sensor.active_p2_alerts
+#         above: 0
+#     actions:
+#       - repeat:
+#           for_each: >
+#             {% set p2_alerts = state_attr('sensor.active_p2_alerts', 'alerts') %}
+#             {% set overnight = namespace(alerts=[]) %}
+#             {% for alert in p2_alerts if alert.started %}
+#               {% set alert_time = as_timestamp(alert.started) %}
+#               {% set alert_hour = alert_time | timestamp_custom('%H') | int %}
+#               {% set today_8am = today_at('08:00').timestamp() %}
+#               {% set yesterday_10pm = (today_at('22:00') - timedelta(days=1)).timestamp() %}
+#               {% if (alert_hour >= 22 or alert_hour < 8) and
+#                     (alert_time > yesterday_10pm or alert_time < today_8am) %}
+#                 {% set overnight.alerts = overnight.alerts + [alert.entity.replace('alert2.', '')] %}
+#               {% endif %}
+#             {% endfor %}
+#             {{ overnight.alerts }}
+#           sequence:
+#             - action: alert2.notification_control
+#               data:
+#                 entity_id: "alert2.{{ repeat.item }}"
+#                 command: fire_now

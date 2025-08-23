@@ -5,6 +5,9 @@ default_config:
 # Load frontend themes from the themes folder
 frontend:
   themes: !include_dir_merge_named themes
+  # @see https://github.com/thomasloven/lovelace-card-mod#performance-improvements
+  extra_module_url:
+    - /hacsfiles/lovelace-card-mod/card-mod.js
 
 automation: !include automations.yaml
 script: !include scripts.yaml
@@ -19,15 +22,29 @@ homeassistant:
 lovelace:
   mode: storage
 
-  resources:
-    - url: /hacsfiles/button-card/button-card.js
-      type: module
-    - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
-      type: module
+  # This doesn't matter since we are in mode: storage right now to get the default
+  # dashboad. You need to add resources at /config/lovelace/resources
+  #
+  # resources:
+  #   - url: /hacsfiles/button-card/button-card.js
+  #     type: module
+  #   - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
+  #     type: module
+  #   - url: /hacsfiles/logbook-card/logbook-card.js
+  #     type: module
 
   ##############################################################################
   dashboards:
-    lvndr-0:
+    0-lavender:
       mode: yaml
-      title: LVNDR
-      filename: ui/dashboards/lvndr-dashboard.yaml
+      title: Lavender
+      icon: mdi:home
+      show_in_sidebar: true
+      filename: ui/lavender/lavender-dashboard.yaml
+
+    1-alerting:
+      mode: yaml
+      title: Alerting
+      icon: mdi:alert
+      show_in_sidebar: true
+      filename: ui/alerting/alerting-dashboard.yaml

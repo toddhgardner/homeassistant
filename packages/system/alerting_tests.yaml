@@ -1,0 +1,64 @@
+################################################################################
+# Alerting Tests
+# Test alerts for validating the alerting system at each severity level.
+################################################################################
+---
+input_boolean:
+  ##############################################################################
+  # Test Alert Triggers
+  ##############################################################################
+  test_alert_p1_trigger:
+    name: "Test P1 Alert Trigger"
+    icon: mdi:alert-box-outline
+
+  test_alert_p2_trigger:
+    name: "Test P2 Alert Trigger"
+    icon: mdi:alert-outline
+
+  test_alert_p3_trigger:
+    name: "Test P3 Alert Trigger"
+    icon: mdi:information-outline
+
+alert2:
+  alerts:
+    ############################################################################
+    # Test Alerts
+    ############################################################################
+    - domain: test
+      name: critical_alert
+      friendly_name: "(TEST) P1 Critical Alert"
+      condition: "{{ is_state('input_boolean.test_alert_p1_trigger', 'on') }}"
+      message: >
+        🧪 TEST P1 CRITICAL: This is a test of the P1 critical alert system.
+        Triggered at {{ now().strftime('%-I:%M %p') }}.
+      annotate_messages: false
+      done_message: clear_notification
+      # Common Settings for a P1 CRITICAL ALERT
+      icon: mdi:alert-box-outline
+      priority: "high"
+      notifier: p1_critical
+      reminder_frequency_mins: 1 #30 1 minute for testing
+
+    ############################################################################
+    - domain: test
+      name: p2_warning
+      priority: "medium"
+      icon: mdi:alert-outline
+      reminder_frequency_mins: 1
+      friendly_name: "TEST: P2 Warning Alert"
+      condition: "{{ is_state('input_boolean.test_alert_p2_trigger', 'on') }}"
+      message: >
+        🧪 TEST P2 WARNING: This is a test of the P2 warning alert system.
+        Triggered at {{ now().strftime('%-I:%M %p') }}.
+
+    ############################################################################
+    - domain: test
+      name: p3_info
+      priority: "low"
+      icon: mdi:information-outline
+      reminder_frequency_mins: 1
+      friendly_name: "TEST: P3 Info Alert"
+      condition: "{{ is_state('input_boolean.test_alert_p3_trigger', 'on') }}"
+      message: >
+        🧪 TEST P3 INFO: This is a test of the P3 info alert system.
+        Triggered at {{ now().strftime('%-I:%M %p') }}.

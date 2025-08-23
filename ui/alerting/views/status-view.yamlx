@@ -1,0 +1,386 @@
+################################################################################
+# Alerting Status
+################################################################################
+title: STATUS
+path: status
+type: sections
+max_columns: 2
+# ################################################################################
+# header:
+#   layout: left
+#   badges_position: top
+#   badges_wrap: wrap
+#   card:
+#     type: markdown
+#     content: |-
+#       {% set p1 = states('sensor.active_p1_alerts') | int(0) %}
+#       {% set p2 = states('sensor.active_p2_alerts') | int(0) %}
+#       {% set p3 = states('sensor.active_p3_alerts') | int(0) %}
+#       {% if p1 > 0 %}
+#       # 🚨🚨🚨 STATUS CRITICAL 🚨🚨🚨
+#       ## {{ p1 }} Critical alert{{ 's' if p1 > 1 else '' }} • {{ relative_time(states.sensor.active_p1_alerts.last_changed) }} ago
+
+#       {% elif p2 > 0 %}
+#       # ⚠️⚠️⚠️ WARNING ⚠️⚠️⚠️
+#       ## {{ p2 }} Warning{{ 's' if p2 > 1 else '' }} • {{ relative_time(states.sensor.active_p2_alerts.last_changed) }} ago
+
+#       {% elif p3 > 0 %}
+#       # ℹ️ℹ️ SYSTEM INFORMATION ℹ️ℹ️
+#       ## {{ p3 }} Informational Alert{{ 's' if p3 > 1 else '' }} • {{ relative_time(states.sensor.active_p3_alerts.last_changed) }} ago
+
+#       {% else %}
+#       # ✅✅✅ SYSTEMS NORMAL ✅✅✅
+#       ## No active alerts 😍
+#       {% endif %}
+
+# ################################################################################
+# badges:
+#   - type: entity
+#     entity: sensor.active_p1_alerts
+#     name: P1 Critical
+#     icon: mdi:alert-octagon
+#     show_name: true
+#     show_state: true
+#     show_icon: true
+#     color: var(--red-color)
+#     visibility:
+#       - condition: numeric_state
+#         entity: sensor.active_p1_alerts
+#         above: -1
+
+#   - type: entity
+#     entity: sensor.active_p2_alerts
+#     name: P2 Warning
+#     icon: mdi:alert
+#     show_name: true
+#     show_state: true
+#     show_icon: true
+#     color: var(--orange-color)
+#     visibility:
+#       - condition: numeric_state
+#         entity: sensor.active_p2_alerts
+#         above: -1
+
+#   - type: entity
+#     entity: sensor.active_p3_alerts
+#     name: P3 Info
+#     icon: mdi:information
+#     show_name: true
+#     show_state: true
+#     show_icon: true
+#     color: var(--blue-color)
+#     visibility:
+#       - condition: numeric_state
+#         entity: sensor.active_p3_alerts
+#         above: -1
+
+# sections:
+#   - type: grid
+#     cards:
+#       ##########################################################################
+#       # All Active Alerts (Individual Cards by Severity)
+#       ##########################################################################
+#       - type: custom:auto-entities
+#         show_empty: false
+#         card:
+#           type: vertical-stack
+#           title: 🚨 Active Alerts
+#         card_param: cards
+#         filter:
+#           include:
+#             # P1 Critical alerts
+#             - domain: alert2
+#               attributes:
+#                 annotation:
+#                   severity: p1
+#               state: "on"
+#               options:
+#                 type: custom:button-card
+#                 show_name: true
+#                 show_state: false
+#                 show_last_changed: false
+#                 show_icon: true
+#                 icon: mdi:alert-octagon
+#                 size: 100%
+#                 styles:
+#                   card:
+#                     - height: 160px
+#                     - padding: 0
+#                     - overflow: hidden
+#                     - position: relative
+#                     - background-color: color-mix(in srgb, var(--error-color), transparent 85%)
+#                     - border: 2px solid var(--error-color)
+#                   grid:
+#                     - grid-template-areas: '"i . ctr" "i n ctr" "i msg ctr" "i . ctr" "i sts ctr"'
+#                     - grid-template-columns: 100px 1fr 100px
+#                     - grid-template-rows: 1fr 1fr 1fr 1fr 1fr
+#                   icon:
+#                     - color: white
+#                     - width: 60px
+#                     - height: 60px
+#                   name:
+#                     - font-weight: bold
+#                     - justify-self: start
+#                     - align-self: end
+#                   custom_fields:
+#                     msg:
+#                       - color: var(--secondary-text-color)
+#                       - text-align: left
+#                     sts:
+#                       - color: var(--secondary-text-color)
+#                       - text-align: left
+#                       - font-size: var(--material-small-font-size)
+#                 custom_fields:
+#                   msg: |
+#                     [[[
+#                       return entity.attributes.message || 'P1 Critical Alert';
+#                     ]]]
+#                   sts: |
+#                     [[[
+#                       const lastChanged = new Date(entity.attributes.started_firing_at).toLocaleString("en-US", {
+#                         month: 'short',
+#                         day: 'numeric',
+#                         hour: 'numeric',
+#                         minute: '2-digit',
+#                         hour12: true
+#                       });
+
+#                       const entityId = entity.attributes.annotation ? entity.attributes.annotation.entity_id : null;
+#                       const currentState = entityId ? states[entityId].state : 'N/A';
+
+#                       return `Active • ${lastChanged} • Current: ${currentState}`;
+#                     ]]]
+#                   ctr: |
+#                     [[[
+#                       return `
+#                         <div onclick="this.dispatchEvent(new Event('ack-alert'))" style="
+#                           position: absolute;
+#                           right: 0;
+#                           top: 0;
+#                           width: 80px;
+#                           height: 100%;
+#                           display: flex;
+#                           align-items: center;
+#                           justify-content: center;
+#                           cursor: pointer;
+#                           z-index: 10;
+#                         ">
+#                           <ha-icon icon="mdi:check-circle"
+#                             style="width: 30px; height: 30px; color: white; pointer-events: none;">
+#                           </ha-icon>
+#                         </div>
+#                       `;
+#                     ]]]
+#                 tap_action:
+#                   action: more-info
+#                   entity: |
+#                     [[[
+#                       return entity.attributes.annotation && entity.attributes.annotation.entity_id
+#                         ? entity.attributes.annotation.entity_id
+#                         : entity.entity_id;
+#                     ]]]
+#                 hold_action:
+#                   action: call-service
+#                   service: alert2.ack
+#                   service_data:
+#                     entity_id: |
+#                       [[[
+#                         return entity.entity_id;
+#                       ]]]
+
+#             # P2 Warning alerts
+#             - domain: alert2
+#               attributes:
+#                 annotation:
+#                   severity: p2
+#               state: "on"
+#               options:
+#                 type: custom:button-card
+#                 show_name: true
+#                 show_state: false
+#                 show_last_changed: false
+#                 show_icon: true
+#                 icon: mdi:alert
+#                 size: 100%
+#                 styles:
+#                   card:
+#                     - background-color: rgba(255, 159, 10, 0.2)
+#                     - border: 2px solid var(--orange-color)
+#                     - padding: 0
+#                     - height: 140px
+#                     - overflow: hidden
+#                     - position: relative
+#                   grid:
+#                     - grid-template-areas: '". . ." "i n n" "i m m" ". . ." ". s s"'
+#                     - grid-template-columns: 100px 1fr 80px
+#                     - grid-template-rows: 1fr auto auto 1fr 40px
+#                     - padding-left: 20px
+#                     - padding-right: 85px
+#                   icon:
+#                     - color: white
+#                     - width: 60px
+#                     - height: 60px
+#                   name:
+#                     - font-weight: bold
+#                     - font-size: 18px
+#                     - justify-self: start
+#                     - align-self: end
+#                 custom_fields:
+#                   m: |
+#                     [[[
+#                       return `<div style="font-size: 14px; color: var(--secondary-text-color); text-align: left;">
+#                         ${entity.attributes.message || 'P2 Warning Alert'}
+#                       </div>`;
+#                     ]]]
+#                   s: |
+#                     [[[
+#                       const time = new Date(entity.attributes.started_firing_at).toLocaleString("en-US", {
+#                         month: 'short',
+#                         day: 'numeric',
+#                         hour: 'numeric',
+#                         minute: '2-digit',
+#                         hour12: true
+#                       });
+#                       const entityId = entity.attributes.annotation ? entity.attributes.annotation.entity_id : null;
+#                       const currentState = entityId ? states[entityId].state : 'N/A';
+#                       return `<div style="font-size: 14px; color: var(--secondary-text-color); padding-bottom: 20px;">
+#                         Active • ${time} • ${currentState}
+#                       </div>`;
+#                     ]]]
+#                   ack: |
+#                     [[[
+#                       return `
+#                         <div onclick="this.dispatchEvent(new Event('ack-alert'))" style="
+#                           position: absolute;
+#                           right: 0;
+#                           top: 0;
+#                           width: 80px;
+#                           height: 100%;
+#                           display: flex;
+#                           align-items: center;
+#                           justify-content: center;
+#                           cursor: pointer;
+#                           z-index: 10;
+#                         ">
+#                           <ha-icon icon="mdi:check"
+#                             style="width: 30px; height: 30px; color: white; pointer-events: none;">
+#                           </ha-icon>
+#                         </div>
+#                       `;
+#                     ]]]
+#                 tap_action:
+#                   action: more-info
+#                   entity: |
+#                     [[[
+#                       return entity.attributes.annotation && entity.attributes.annotation.entity_id
+#                         ? entity.attributes.annotation.entity_id
+#                         : entity.entity_id;
+#                     ]]]
+#                 hold_action:
+#                   action: call-service
+#                   service: alert2.ack
+#                   service_data:
+#                     entity_id: |
+#                       [[[
+#                         return entity.entity_id;
+#                       ]]]
+
+#             # P3 Info alerts
+#             - domain: alert2
+#               attributes:
+#                 annotation:
+#                   severity: p3
+#               state: "on"
+#               options:
+#                 type: custom:button-card
+#                 show_name: true
+#                 show_state: false
+#                 show_last_changed: false
+#                 show_icon: true
+#                 icon: mdi:information
+#                 size: 100%
+#                 styles:
+#                   card:
+#                     - background-color: rgba(10, 132, 255, 0.2)
+#                     - border: 2px solid var(--blue-color)
+#                     - padding: 0
+#                     - height: 140px
+#                     - overflow: hidden
+#                     - position: relative
+#                   grid:
+#                     - grid-template-areas: '". . ." "i n n" "i m m" ". . ." ". s s"'
+#                     - grid-template-columns: 100px 1fr 80px
+#                     - grid-template-rows: 1fr auto auto 1fr 40px
+#                     - padding-left: 20px
+#                     - padding-right: 85px
+#                   icon:
+#                     - color: white
+#                     - width: 60px
+#                     - height: 60px
+#                   name:
+#                     - font-weight: bold
+#                     - font-size: 18px
+#                     - justify-self: start
+#                     - align-self: end
+#                 custom_fields:
+#                   m: |
+#                     [[[
+#                       return `<div style="font-size: 14px; color: var(--secondary-text-color); text-align: left;">
+#                         ${entity.attributes.message || 'P3 Info Alert'}
+#                       </div>`;
+#                     ]]]
+#                   s: |
+#                     [[[
+#                       const time = new Date(entity.attributes.started_firing_at).toLocaleString("en-US", {
+#                         month: 'short',
+#                         day: 'numeric',
+#                         hour: 'numeric',
+#                         minute: '2-digit',
+#                         hour12: true
+#                       });
+#                       const entityId = entity.attributes.annotation ? entity.attributes.annotation.entity_id : null;
+#                       const currentState = entityId ? states[entityId].state : 'N/A';
+#                       return `<div style="font-size: 14px; color: var(--secondary-text-color); padding-bottom: 20px;">
+#                         Active • ${time} • ${currentState}
+#                       </div>`;
+#                     ]]]
+#                   ack: |
+#                     [[[
+#                       return `
+#                         <div onclick="this.dispatchEvent(new Event('ack-alert'))" style="
+#                           position: absolute;
+#                           right: 0;
+#                           top: 0;
+#                           width: 80px;
+#                           height: 100%;
+#                           display: flex;
+#                           align-items: center;
+#                           justify-content: center;
+#                           cursor: pointer;
+#                           z-index: 10;
+#                         ">
+#                           <ha-icon icon="mdi:check"
+#                             style="width: 30px; height: 30px; color: white; pointer-events: none;">
+#                           </ha-icon>
+#                         </div>
+#                       `;
+#                     ]]]
+#                 tap_action:
+#                   action: more-info
+#                   entity: |
+#                     [[[
+#                       return entity.attributes.annotation && entity.attributes.annotation.entity_id
+#                         ? entity.attributes.annotation.entity_id
+#                         : entity.entity_id;
+#                     ]]]
+#                 hold_action:
+#                   action: call-service
+#                   service: alert2.ack
+#                   service_data:
+#                     entity_id: |
+#                       [[[
+#                         return entity.entity_id;
+#                       ]]]
+
+#   - type: grid
+#     cards:
