@@ -1,12 +1,22 @@
-##############################################################################
-# Alerting Settings
-##############################################################################
+################################################################################
+# Alerting UI
+# Settings View
+#
+# Controls for changing the settings for alerts without messing with the code.
+################################################################################
 title: SETTINGS
 path: settings
 cards:
-  ##########################################################################
-  # Alert Settings
-  ##########################################################################
+  - type: entities
+    title: ⚙️ Alert Settings
+    entities:
+      - type: section
+        label: "General Settings"
+
+      - entity: input_number.alert_snooze_duration
+        name: Snooze Duration
+        icon: mdi:timer-pause
+
   # - type: entities
   #   title: ⚙️ Alert Configuration
   #   entities:

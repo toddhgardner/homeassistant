@@ -131,11 +131,12 @@ sections:
                           ack_at_snooze_start: false
                           enable: true
                           snooze_until: |
-                            [[[ 
+                            [[[
                               if (entity.attributes.notification_control  === 'enabled') {
-                                const now = new Date();
-                                now.setTime(now.getTime() + (2*60*1000));
-                                return now.toISOString();
+                                const snoozeMinutes = parseInt(states['input_number.alert_snooze_duration'].state, 10);
+                                const until = new Date();
+                                until.setTime(until.getTime() + (snoozeMinutes*60*1000));
+                                return until.toISOString();
                               }
                               else {
                                 return undefined;
