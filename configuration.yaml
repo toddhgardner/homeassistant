@@ -45,6 +45,6 @@ lovelace:
     1-alerting:
       mode: yaml
       title: Alerting
-      icon: mdi:alert
+      icon: mdi:home-alert-outline
       show_in_sidebar: true
       filename: ui/alerting/alerting-dashboard.yaml
