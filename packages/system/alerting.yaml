@@ -104,27 +104,27 @@ template:
       - name: "Alert P1 Active Count"
         icon: mdi:alert-box-outline
         state: >
-          {{ states.alert2 
+          {{ states.alert2
             | selectattr('attributes.priority', 'eq', 'high')
-            | selectattr('state', 'eq', 'on') 
+            | selectattr('state', 'eq', 'on')
             | list | length }}
 
       ##########################################################################
       - name: "Alert P2 Active Count"
         icon: mdi:alert-outline
         state: >
-          {{ states.alert2 
+          {{ states.alert2
             | selectattr('attributes.priority', 'eq', 'medium')
-            | selectattr('state', 'eq', 'on') 
+            | selectattr('state', 'eq', 'on')
             | list | length }}
 
       ##########################################################################
       - name: "Alert P3 Active Count"
         icon: mdi:information-outline
         state: >
-          {{ states.alert2 
+          {{ states.alert2
             | selectattr('attributes.priority', 'eq', 'low')
-            | selectattr('state', 'eq', 'on') 
+            | selectattr('state', 'eq', 'on')
             | list | length }}
 
 # automation:

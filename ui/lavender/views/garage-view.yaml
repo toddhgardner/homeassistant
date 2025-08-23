@@ -1,0 +1,63 @@
+type: sections
+max_columns: 4
+title: Garage
+path: garage
+sections:
+  - type: grid
+    cards:
+      - type: heading
+        icon: ""
+        heading_style: title
+        grid_options:
+          columns: full
+          rows: 3
+        visibility:
+          - condition: screen
+            media_query: "(min-width: 1024px)"
+    column_span: 4
+  - type: grid
+    cards:
+      - show_name: true
+        show_icon: true
+        type: button
+        entity: cover.konnected_f0f5bd514400_garage_door
+        show_state: true
+        grid_options:
+          columns: 6
+          rows: 3
+      - show_name: true
+        show_icon: true
+        type: button
+        show_state: true
+        grid_options:
+          columns: 6
+          rows: 3
+        entity: switch.garage_lights
+      - type: custom:button-card
+        entity: sensor.garage_freezer_monitor_temperature
+        name: Garage Freezer
+        show_state: false
+        show_label: true
+        label: |
+          [[[
+            const temp = states['sensor.garage_freezer_monitor_temperature'].state;
+            const unit = states['sensor.garage_freezer_monitor_temperature'].attributes.unit_of_measurement || '°F';
+            return `${temp}${unit}`;
+          ]]]
+        grid_options:
+          columns: 6
+          rows: 3
+    column_span: 4
+top_margin: true
+cards: []
+header:
+  layout: start
+  badges_position: top
+  badges_wrap: scroll
+  card:
+    type: markdown
+    text_only: true
+    content: |
+      61℉ • Comfortable
+      # Garage
+badges: []

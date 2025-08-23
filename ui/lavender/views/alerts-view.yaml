@@ -1,0 +1,31 @@
+title: Alerts
+path: alerts
+icon: mdi:alert-circle
+cards:
+  ##############################################################################
+  # Critical Alerts
+  ##############################################################################
+  - type: custom:auto-entities
+    show_empty: true
+    card:
+      type: entities
+      title: 🚨 Critical Alerts
+      card_mod:
+        style: |
+          ha-card {
+            background-color: red;
+            --primary-text-color: white;
+            --secondary-text-color: white;
+            --paper-item-icon-color: white;
+          }
+    filter:
+      include:
+        - entity_id: /^alert(.).*_crit_alert_active/
+          options:
+            secondary_info: last-changed
+      exclude:
+        - state: "off"
+        - state: idle
+    sort:
+      method: last_changed
+      reverse: true
