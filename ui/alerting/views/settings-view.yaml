@@ -6,16 +6,60 @@
 ################################################################################
 title: SETTINGS
 path: settings
-cards:
-  - type: entities
-    title: ⚙️ Alert Settings
-    entities:
-      - type: section
-        label: "General Settings"
+type: sections
+max_columns: 1
 
-      - entity: input_number.alert_snooze_duration
-        name: Snooze Duration
-        icon: mdi:timer-pause
+################################################################################
+header:
+  card:
+    type: markdown
+    text_only: true
+    content: |-
+      # Alerting Settings
+  layout: center
+  badges_position: top
+  badges_wrap: wrap
+
+################################################################################
+# Badges
+################################################################################
+badges:
+  - type: entity
+    entity: sensor.alert_p1_active_count
+    name: CRITICAL
+    show_name: true
+    show_state: true
+    show_icon: true
+    color: var(--red-color)
+
+  ##############################################################################
+  - type: entity
+    entity: sensor.alert_p2_active_count
+    name: WARNING
+    show_name: true
+    show_state: true
+    show_icon: true
+    color: var(--orange-color)
+
+  ##############################################################################
+  - type: entity
+    entity: sensor.alert_p3_active_count
+    name: INFO
+    show_name: true
+    show_state: true
+    show_icon: true
+    color: var(--blue-color)
+
+sections:
+  - type: grid
+    cards:
+      - type: entities
+        title: General Settings
+        show_header_toggle: false
+        entities:
+          - entity: input_number.alert_snooze_duration
+            name: Snooze Duration
+            icon: mdi:timer-pause
 
   # - type: entities
   #   title: ⚙️ Alert Configuration

@@ -27,41 +27,29 @@ header:
 badges:
   - type: entity
     entity: sensor.alert_p1_active_count
-    name: P1
+    name: CRITICAL
     show_name: true
     show_state: true
     show_icon: true
     color: var(--red-color)
-    visibility:
-      - condition: numeric_state
-        entity: sensor.alert_p1_active_count
-        above: -1
 
   ##############################################################################
   - type: entity
     entity: sensor.alert_p2_active_count
-    name: P2
+    name: WARNING
     show_name: true
     show_state: true
     show_icon: true
     color: var(--orange-color)
-    visibility:
-      - condition: numeric_state
-        entity: sensor.alert_p2_active_count
-        above: -1
 
   ##############################################################################
   - type: entity
     entity: sensor.alert_p3_active_count
-    name: P3
+    name: INFO
     show_name: true
     show_state: true
     show_icon: true
     color: var(--blue-color)
-    visibility:
-      - condition: numeric_state
-        entity: sensor.alert_p3_active_count
-        above: -1
 
 sections:
   ################################################################################

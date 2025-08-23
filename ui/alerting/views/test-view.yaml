@@ -21,6 +21,36 @@ header:
   badges_position: top
   badges_wrap: wrap
 
+################################################################################
+# Badges
+################################################################################
+badges:
+  - type: entity
+    entity: sensor.alert_p1_active_count
+    name: CRITICAL
+    show_name: true
+    show_state: true
+    show_icon: true
+    color: var(--red-color)
+
+  ##############################################################################
+  - type: entity
+    entity: sensor.alert_p2_active_count
+    name: WARNING
+    show_name: true
+    show_state: true
+    show_icon: true
+    color: var(--orange-color)
+
+  ##############################################################################
+  - type: entity
+    entity: sensor.alert_p3_active_count
+    name: INFO
+    show_name: true
+    show_state: true
+    show_icon: true
+    color: var(--blue-color)
+
 sections:
   ##############################################################################
   # Left Section - Test Alert Toggles
