@@ -90,15 +90,21 @@ automation:
                   enable: true
                   snooze_until: "{{ (now() + timedelta(minutes=states('input_number.alert_snooze_duration') | int(2))).isoformat() }}"
 
-################################################################################
-# Alerting Defaults for mobile actions
-# This is wonky for Alert2 v1.15.1. It uses python string interpretation, so we
-# can't send regular YAML, we need to send a string. Values can only resolve to
-# strings, so we can't use `destructive: true`
-################################################################################
 alert2:
-
+  ##############################################################################
+  # Alerting Defaults for mobile actions
+  # This is wonky for Alert2 v1.15.1. It uses python string interpretation, so
+  # we can't send regular YAML, we need to send a string. Values can only
+  # resolve to strings, so we can't use `destructive: true`
+  #
+  # Defaults are based on P1 Critical alerts so that the built-in alert2
+  # exceptions notify if something breaks.
+  ##############################################################################
   defaults:
+    icon: mdi:alert-box-outline
+    priority: high
+    notifier: p1_critical
+    reminder_frequency_mins: 30
     data:
       tag: "'{{ alert_entity_id }}'"
       url: "/1-alerting/status"
@@ -115,6 +121,24 @@ alert2:
             "icon": "sfsymbols:bell.slash.fill",
           },
         ]
+
+  ##############################################################################
+  # Alert2 Internals
+  # Notify for errors in the Alert2 system so that we know other alerts are not
+  # functioning.
+  ##############################################################################
+  alerts:
+    - domain: system
+      name: ha_startup_delayed
+      friendly_name: "🚨 Alert2 Startup Delayed"
+      early_start: true
+      condition: >
+        {{ states('binary_sensor.alert2_ha_startup_done') == 'off' and
+          (now().timestamp() - state_attr('binary_sensor.alert2_ha_startup_done', 'start_time').timestamp()) > 300 }}
+      message: >
+        Alert system is offline
+      done_message: >
+        ✅ Cleared at {{ now().strftime('%-I:%M %p') }}.
 
 template:
   ##############################################################################
