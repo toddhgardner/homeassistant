@@ -48,7 +48,8 @@ automation:
   ##############################################################################
   - id: alert_action_handler
     alias: Notification Action Handler
-    description: "Handle notification action events and execute the correct system action."
+    description: >
+      Handle notification action events and execute the correct system action.
     mode: parallel
     max: 10
 
@@ -96,6 +97,7 @@ automation:
 # strings, so we can't use `destructive: true`
 ################################################################################
 alert2:
+
   defaults:
     data:
       tag: "'{{ alert_entity_id }}'"

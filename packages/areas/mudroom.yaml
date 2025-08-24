@@ -4,7 +4,6 @@
 homeassistant:
   customize:
     package.node_anchors:
-      # Define device entities as anchors for reuse
       mudroom_closet_door: &mudroom_closet_door binary_sensor.mudroom_closet_door
       mudroom_closet_lights: &mudroom_closet_lights switch.mudroom_closet_light_switch
 
@@ -12,7 +11,9 @@ automation:
   ##############################################################################
   - id: mudroom_closet_auto_lights
     alias: Mudroom Closet Auto Lights
-    description: "Turn on closet lights when door opens, turn off 2 minutes after door closes."
+    description: >
+      Turn on closet lights when door opens, turn off 2 minutes after door
+      closes.
     triggers:
       - trigger: state
         entity_id: *mudroom_closet_door
@@ -44,13 +45,13 @@ automation:
   ##############################################################################
   - id: mudroom_closet_lights_auto_off
     alias: Mudroom Closet Lights Auto Off
-    description: "Turn off closet lights after 2 hours regardless of door state."
+    description: "Turn off idle closet lights."
     triggers:
       - trigger: state
         entity_id: *mudroom_closet_lights
         to: "on"
         for:
-          hours: 2
+          hours: 1
     actions:
       - action: switch.turn_off
         target:

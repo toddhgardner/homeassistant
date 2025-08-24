@@ -26,6 +26,7 @@ blueprints
 image
 www
 
+.vscode
 .HA_VERSION
 .cloud
 .storage
