@@ -1,29 +1,28 @@
 ---
 ### Garage ###
 
-input_boolean:
-  ##############################################################################
-  garage_double_close_auto_enabled:
-    name: Garage Double Auto-Close Enabled
-    icon: mdi:garage-variant
-  ##############################################################################
-  garage_double_open_alert_enabled:
-    name: Garage Double Open Alert Enabled
-    icon: mdi:garage-alert-variant
-  ##############################################################################
-  garage_freezer_temp_alert_enabled:
-    name: Garage Freezer Alert Enabled
-    icon: mdi:fridge-alert
-  ################################################################################
+################################################################################
+# Device Aliases
+################################################################################
+homeassistant:
+  customize:
+    package.node_anchors:
+      garage_door_double: &garage_door_double cover.konnected_f0f5bd514400_garage_door
+      garage_door_double_lock: &garage_door_double_lock lock.konnected_f0f5bd514400_lock
+      garage_lights_inside: &garage_lights_inside switch.garage_lights
+      garage_lights_outside: &garage_lights_outside switch.outside_garage_lights
+      garage_freezer_temp: &garage_freezer_temp sensor.garage_freezer_monitor_temperature
 
+################################################################################
+# Automations
+################################################################################
 automation:
-  ##############################################################################
   - id: garage_double_auto_close
     alias: Garage Double Auto Close
     description: "Close double garage door if left open for 10 minutes."
     triggers:
       - trigger: state
-        entity_id: cover.konnected_f0f5bd514400_garage_door
+        entity_id: *garage_door_double
         to: "open"
         for:
           hours: 0
@@ -31,15 +30,12 @@ automation:
           seconds: 0
     conditions:
       - condition: state
-        entity_id: input_boolean.garage_double_close_auto_enabled
-        state: "on"
-      - condition: state
-        entity_id: lock.konnected_f0f5bd514400_lock
+        entity_id: *garage_door_double_lock
         state: "unlocked"
     actions:
       - action: cover.close_cover
         target:
-          entity_id: cover.konnected_f0f5bd514400_garage_door
+          entity_id: *garage_door_double
     mode: restart
   ##############################################################################
   - id: garage_double_auto_lights
@@ -47,11 +43,11 @@ automation:
     description: "Turn on garage lights when double garage door is open."
     triggers:
       - trigger: state
-        entity_id: cover.konnected_f0f5bd514400_garage_door
+        entity_id: *garage_door_double
         to: "opening"
         id: double_garage_door_opening
       - trigger: state
-        entity_id: cover.konnected_f0f5bd514400_garage_door
+        entity_id: *garage_door_double
         to: "closed"
         id: double_garage_door_closed
     actions:
@@ -61,7 +57,6 @@ automation:
               - condition: trigger
                 id: double_garage_door_opening
             sequence:
-              # Check if there is already a previous lighting state to use, otherwise save the current state
               - if:
                   - condition: template
                     value_template: "{{ states('scene.garage_lights_previous_state') == 'unknown' }}"
@@ -69,14 +64,15 @@ automation:
                   - action: scene.create
                     data:
                       snapshot_entities:
-                        - switch.garage_lights
-                        - switch.outside_garage_lights
+                        - *garage_lights_inside
+                        - *garage_lights_outside
                       scene_id: garage_lights_previous_state
               - action: switch.turn_on
                 target:
                   entity_id:
-                    - switch.garage_lights
-                    - switch.outside_garage_lights
+                    - *garage_lights_inside
+                    - *garage_lights_outside
+
           # When door is closed - wait 5 minutes then restore previous state
           - conditions:
               - condition: trigger
@@ -92,57 +88,86 @@ automation:
                   entity_id: scene.garage_lights_previous_state
     mode: restart
 
+################################################################################
+# Alert Triggers
+# Template sensors that act as triggers for alerts.
+################################################################################
 template:
-  ##############################################################################
   - binary_sensor:
-      - name: Garage Double Open Alert
+      - name: p2_garage_double_open_trigger
         state: >
-          {{ (states('cover.konnected_f0f5bd514400_garage_door') == 'open') 
-            and is_state('input_boolean.garage_double_open_alert_enabled', 'on') }}
-        availability: "{{ states('cover.konnected_f0f5bd514400_garage_door') not in ['unavailable', 'unknown', 'none'] }}"
+          {{ is_state("*garage_door_double", 'open') }}
+        availability: >
+          {{ not is_state("*garage_door_double", ['unavailable', 'unknown', 'none']) }}
         delay_on:
           minutes: 60
+        attributes:
+          source_entity_id: *garage_door_double
   ##############################################################################
   - binary_sensor:
-      - name: Garage Freezer Temp Alert
+      - name: p1_garage_freezer_temp_trigger
         state: >
-          {{ (states('sensor.garage_freezer_monitor_temperature') | int(0) < -10 or states('sensor.garage_freezer_monitor_temperature') | int(0) > 10) 
-            and is_state('input_boolean.garage_freezer_temp_alert_enabled', 'on') }}
-        availability: "{{ states('sensor.garage_freezer_monitor_temperature') not in ['unavailable', 'unknown', 'none'] }}"
+          {{ states("*garage_freezer_temp") | int(0) < -10
+            or states("*garage_freezer_temp") | int(0) > 10 }}
+        availability: >
+          {{ not is_state("*garage_freezer_temp", ['unavailable', 'unknown', 'none']) }}
         delay_on:
-          minutes: 60
-  ##############################################################################
+          minutes: 30
+        attributes:
+          source_entity_id: *garage_freezer_temp
 
+################################################################################
+# Alerts
+################################################################################
 alert:
-  ##############################################################################
-  garage_double_open_warn_alert_active:
-    name: Garage Double Open
-    entity_id: binary_sensor.garage_double_open_alert
+  p2_garage_double_open:
+    name: Garage Double Door Open
+    entity_id: binary_sensor.p2_garage_double_open_trigger
     state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_warning
     repeat:
       - 60
       - 120
+    title: ⚠️ Garage Double Door Open
+    message: >
+      ACTIVE: {{ states(state_attr('binary_sensor.p2_garage_double_open_trigger', 'source_entity_id'), rounded=True, with_unit=True) }} for {{ relative_time(states.binary_sensor.p2_garage_double_open_trigger.last_changed) }}
+    done_message: >
+      DONE: {{ states(state_attr('binary_sensor.p2_garage_double_open_trigger', 'source_entity_id'), rounded=True, with_unit=True) }} on {{ states.binary_sensor.p2_garage_double_open_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_garage_double_open
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-alerting/status"
+      actions:
+        - action: alert.p2_garage_double_open.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"
+  ##############################################################################
+  p1_garage_freezer_temp:
+    name: Garage Freezer Temp
+    entity_id: binary_sensor.p1_garage_freezer_temp_trigger
+    state: "on"
     can_acknowledge: true
     skip_first: false
-    title: "(Warn) Garage Door Open"
-    message: "Double Garage has been open since {{ states.cover.konnected_f0f5bd514400_garage_door.last_changed.strftime('%a %b %-d, %-I:%M %p') }}"
-    done_message: "RESOLVED: Double Garage closed at {{ now().strftime('%a %b %-d, %-I:%M %p') }}"
-    notifiers:
-      - Warning
-  ##############################################################################
-  garage_freezer_crit_alert_active:
-    name: Garage Freezer Temp
-    entity_id: binary_sensor.garage_freezer_temp_alert
-    state: "on"
+    notifiers: p1_critical
     repeat:
-      - 15
       - 30
       - 60
-      - 120
-    can_acknowledge: true
-    skip_first: false
-    title: "(CRIT) Garage Freezer Temp"
-    message: "Temp is {{ states('sensor.garage_freezer_monitor_temperature') }}° F at {{ as_timestamp(states.sensor.garage_freezer_monitor_temperature.last_changed) | timestamp_custom('%a %b %-d, %-I:%M %p') }}"
-    done_message: "RESOLVED Garage Freezer Temp at {{ as_timestamp(states.binary_sensor.garage_freezer_temp_alert.last_changed) | timestamp_custom('%a %b %-d, %-I:%M %p') }}"
-    notifiers:
-      - Critical
+    title: 🚨 Garage Freezer Temp
+    message: >
+      ACTIVE: {{ states(state_attr('binary_sensor.p1_garage_freezer_temp_trigger', 'source_entity_id'), rounded=True, with_unit=True) }} for {{ relative_time(states.binary_sensor.p1_garage_freezer_temp_trigger.last_changed) }}
+    done_message: >
+      DONE: {{ states(state_attr('binary_sensor.p1_garage_freezer_temp_trigger', 'source_entity_id'), rounded=True, with_unit=True) }} on {{ states.binary_sensor.p1_garage_freezer_temp_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p1_garage_freezer_temp
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-alerting/status"
+      push:
+        interruption-level: critical
+      actions:
+        - action: alert.p1_garage_freezer_temp.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"

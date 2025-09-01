@@ -46,8 +46,8 @@ alert:
     state: "on"
     can_acknowledge: true
     skip_first: false
-    repeat: 1 # for testing
     notifiers: p1_critical
+    repeat: 1 # for testing
     title: 🚨 P1 Test Alert
     message: >
       ACTIVE: "on" for {{ relative_time(states.binary_sensor.p1_test_alert_trigger.last_changed) }}
@@ -71,13 +71,13 @@ alert:
     state: "on"
     can_acknowledge: true
     skip_first: false
-    repeat: 1 # for testing
     notifiers: p2_warning
+    repeat: 1 # for testing
     title: ⚠️ P2 Test Alert
     message: >
-      ACTIVE: "on" for {{ relative_time(states.binary_sensor.p2_test_alert_trigger.last_changed) }}
+      ACTIVE: {{ states(state_attr('binary_sensor.p2_test_alert_trigger', 'source_entity_id'), rounded=True, with_unit=True) }} for {{ relative_time(states.binary_sensor.p2_test_alert_trigger.last_changed) }}
     done_message: >
-      DONE: "off" on {{ states.binary_sensor.p2_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+      DONE: {{ states(state_attr('binary_sensor.p2_test_alert_trigger', 'source_entity_id'), rounded=True, with_unit=True) }} on {{ states.binary_sensor.p2_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_test_alert
       subtitle: Lavender Circle

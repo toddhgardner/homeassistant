@@ -81,7 +81,7 @@ automation:
           action_command: "{{ action_parts[2] }}"
 
       - choose:
-          # Acknowledge alert
+          # Mute alert
           - conditions:
               - condition: template
                 value_template: "{{ action_command == 'mute' }}"
@@ -90,7 +90,7 @@ automation:
                 target:
                   entity_id: "{{ action_entity_id }}"
 
-          # Un-Acknowledge alert
+          # Unmute alert
           - conditions:
               - condition: template
                 value_template: "{{ action_command == 'unmute' }}"
@@ -98,103 +98,3 @@ automation:
               - action: alert.turn_on
                 target:
                   entity_id: "{{ action_entity_id }}"
-
-          # Snooze alert
-          # - conditions:
-          #     - condition: template
-          #       value_template: "{{ action_command == 'snooze' }}"
-          #   sequence:
-          #     - action: alert2.notification_control
-          #       data:
-          #         entity_id: "{{ action_entity_id }}"
-          #         ack_at_snooze_start: false
-          #         enable: true
-          #         snooze_until: "{{ (now() + timedelta(minutes=states('input_number.alert_snooze_duration') | int(2))).isoformat() }}"
-
-# # alert2:
-# #   ##############################################################################
-# #   # Alerting Defaults for mobile actions
-# #   # This is wonky for Alert2 v1.15.1. It uses python string interpretation, so
-# #   # we can't send regular YAML, we need to send a string. Values can only
-# #   # resolve to strings, so we can't use `destructive: true`
-# #   #
-# #   # Defaults are based on P1 Critical alerts so that the built-in alert2
-# #   # exceptions notify if something breaks.
-# #   ##############################################################################
-# #   defaults:
-# #     icon: mdi:alert-box-outline
-# #     priority: high
-# #     notifier: p1_critical
-# #     reminder_frequency_mins: 30
-# #     data:
-# #       tag: "'{{ alert_entity_id }}'"
-# #       url: "/1-alerting/status"
-# #       actions: |
-# #         [
-# #           {
-# #             "action": "{{ alert_entity_id }}.ack",
-# #             "title": "Acknowledge",
-# #             "icon": "sfsymbols:checkmark.square.fill",
-# #           },
-# #           {
-# #             "action": "{{ alert_entity_id }}.snooze",
-# #             "title": "Snooze",
-# #             "icon": "sfsymbols:bell.slash.fill",
-# #           },
-# #         ]
-
-#   ##############################################################################
-#   # Alert2 Internals
-#   # Notify for errors in the Alert2 system so that we know other alerts are not
-#   # functioning.
-#   ##############################################################################
-#   alerts:
-#     - domain: system
-#       name: ha_startup_delayed
-#       friendly_name: "🚨 Alert2 Startup Delayed"
-#       early_start: true
-#       condition: >
-#         {{ states('binary_sensor.alert2_ha_startup_done') == 'off' and
-#           (now().timestamp() - state_attr('binary_sensor.alert2_ha_startup_done', 'start_time').timestamp()) > 300 }}
-#       message: >
-#         Alert system is offline
-#       done_message: >
-#         ✅ Cleared at {{ now().strftime('%-I:%M %p') }}.
-
-
-# automation:
-#   ##############################################################################
-#   # Send P2 Alerts from overnight
-#   ##############################################################################
-#   - id: send_overnight_p2_notifications
-#     alias: "Send P2 Notifications from Overnight"
-#     description: "Send notifications for P2 alerts that triggered during quiet hours."
-#     mode: single
-#     triggers:
-#       - trigger: time
-#         at: "09:00:00"
-#     conditions:
-#       - condition: numeric_state
-#         entity_id: sensor.active_p2_alerts
-#         above: 0
-#     actions:
-#       - repeat:
-#           for_each: >
-#             {% set p2_alerts = state_attr('sensor.active_p2_alerts', 'alerts') %}
-#             {% set overnight = namespace(alerts=[]) %}
-#             {% for alert in p2_alerts if alert.started %}
-#               {% set alert_time = as_timestamp(alert.started) %}
-#               {% set alert_hour = alert_time | timestamp_custom('%H') | int %}
-#               {% set today_8am = today_at('08:00').timestamp() %}
-#               {% set yesterday_10pm = (today_at('22:00') - timedelta(days=1)).timestamp() %}
-#               {% if (alert_hour >= 22 or alert_hour < 8) and
-#                     (alert_time > yesterday_10pm or alert_time < today_8am) %}
-#                 {% set overnight.alerts = overnight.alerts + [alert.entity.replace('alert2.', '')] %}
-#               {% endif %}
-#             {% endfor %}
-#             {{ overnight.alerts }}
-#           sequence:
-#             - action: alert2.notification_control
-#               data:
-#                 entity_id: "alert2.{{ repeat.item }}"
-#                 command: fire_now
