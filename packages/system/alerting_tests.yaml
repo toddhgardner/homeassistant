@@ -25,12 +25,16 @@ template:
         state: >
           {{ is_state('input_boolean.p1_test_alert', 'on') }}
         availability: on
+        attributes:
+          source_entity_id: "input_boolean.p1_test_alert"
 
   - binary_sensor:
       - name: p2_test_alert_trigger
         state: >
           {{ is_state('input_boolean.p2_test_alert', 'on') }}
         availability: on
+        attributes:
+          source_entity_id: "input_boolean.p2_test_alert"
 
 alert:
   ##############################################################################

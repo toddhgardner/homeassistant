@@ -75,19 +75,3 @@ sections:
           #   name: P3 Info Alert Test
           #   secondary_info: last-changed
           #   icon: mdi:information-outline
-
-      - type: entities
-        title: Test Actions
-        show_header_toggle: false
-        entities:
-          - type: button
-            name: Turn Off All Test Alerts
-            icon: mdi:power
-            tap_action:
-              action: call-service
-              service: input_boolean.turn_off
-              service_data:
-                entity_id:
-                  - input_boolean.p1_test_alert_trigger
-                  - input_boolean.p2_test_alert_trigger
-                  # - input_boolean.test_alert_p3_trigger

@@ -71,84 +71,44 @@ sections:
               options:
                 type: custom:button-card
                 variables:
-                  entity_id: "[[[ return entity.entity_id; ]]]"
+                  source_entity_id: |
+                    [[[
+                      const trigger_entity = states[`${entity.entity_id.replace("alert.", "binary_sensor.")}_trigger`];
+                      return trigger_entity.attributes.source_entity_id;
+                    ]]]
                 styles:
                   grid:
-                    - grid-template-areas: '"i . ." "i n ack" "i s ." "i l snooze" "i . ."'
+                    - grid-template-areas: '"i . ." "i n mute" "i s ." "i l snooze" "i . ."'
                     - grid-template-columns: 1fr 1fr 1fr
                     - grid-template-rows: 1fr 1fr 1fr 1fr 1fr
                 show_state: true
                 state_display: |
                   [[[
-                    return entity.state === "on" ? "Active" : "Acknowledged";
+                    return entity.state === "on" ? "Active" : "Muted";
                   ]]]
                 show_label: true
                 label: |
                   [[[
-                    const alertId = entity.entity_id.split('.')[1];
-                    const triggerSensorId = `binary_sensor.${alertId}_trigger`;
-                    const triggerSensor = states[triggerSensorId];
-                    console.log(triggerSensor);
-                    const triggerStatus = triggerSensor ? triggerSensor.state : 'unknown';
-                    return `Trigger: ${triggerStatus}`;
+                    return helpers.relativeTime(states[variables.source_entity_id].last_changed);
                   ]]]
                 custom_fields:
-                  ack:
+                  mute:
                     card:
                       type: custom:button-card
-                      name: "Acknowledge"
+                      name: |
+                        [[[
+                          return entity.state === "on" ? "Mute" : "Unmute";
+                        ]]]
                       tap_action:
                         action: call-service
-                        service: "[[[ return entity.attributes.is_acked ? 'alert2.unack' : 'alert2.ack'; ]]]"
+                        service: |
+                          [[[
+                            return entity.state === "on" ? "alert.turn_off" : "alert.turn_on";
+                          ]]]
                         service_data:
                           entity_id: "[[[ return entity.entity_id; ]]]"
-                  snooze:
-                    card:
-                      type: custom:button-card
-                      name: "Snooze"
-                      tap_action:
-                        action: call-service
-                        service: alert2.notification_control
-                        service_data:
-                          entity_id: "[[[ return entity.entity_id; ]]]"
-                          ack_at_snooze_start: false
-                          enable: true
-                          snooze_until: |
-                            [[[
-                              if (entity.attributes.notification_control  === 'enabled') {
-                                const snoozeMinutes = parseInt(states['input_number.alert_snooze_duration'].state, 10);
-                                const until = new Date();
-                                until.setTime(until.getTime() + (snoozeMinutes*60*1000));
-                                return until.toISOString();
-                              }
-                              else {
-                                return undefined;
-                              }
-                            ]]]
-
-                # fuck around with this later once it works.
-                # styles:
-                #   card:
-                # - background-color: |
-                #     [[[
-                #       if (entity.attributes.priority === 'high') return 'rgba(255, 0, 0, 0.2)';
-                #       if (entity.attributes.priority === 'medium') return 'rgba(255, 152, 0, 0.2)';
-                #       return 'rgba(33, 150, 243, 0.2)';
-                #     ]]]
-                # - border: |
-                #     [[[
-                #       if (entity.attributes.priority === 'high') return '2px solid red';
-                #       if (entity.attributes.priority === 'medium') return '2px solid orange';
-                #       return '2px solid #2196f3';
-                #     ]]]
-                # icon:
-                #   - color: white
                 tap_action:
-                  action: call-service
-                  service: alert2.ack
-                  service_data:
-                    entity_id: "[[[ return entity.entity_id; ]]]"
-                hold_action:
                   action: more-info
+                  entity: "[[[ return variables.source_entity_id ]]]"
         sort:
           method: entity_id
