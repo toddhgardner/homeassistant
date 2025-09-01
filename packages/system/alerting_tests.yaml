@@ -46,12 +46,24 @@ alert:
     state: "on"
     can_acknowledge: true
     skip_first: false
-    repeat: 1
-    title: "title"
-    message: "message"
-    done_message: "done"
-    notifiers:
-      - p1_critical
+    repeat: 1 # for testing
+    notifiers: p1_critical
+    title: 🚨 P1 Test Alert
+    message: >
+      ACTIVE: "on" for {{ relative_time(states.binary_sensor.p1_test_alert_trigger.last_changed) }}
+    done_message: >
+      DONE: "off" on {{ states.binary_sensor.p1_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p1_test_alert
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-alerting/status"
+      push:
+        interruption-level: critical
+      actions:
+        - action: alert.p1_test_alert.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"
 
   p2_test_alert:
     name: P2 Test Alert
@@ -59,9 +71,19 @@ alert:
     state: "on"
     can_acknowledge: true
     skip_first: false
-    repeat: 1
-    title: "title"
-    message: "message"
-    done_message: "done"
-    notifiers:
-      - p2_warning
+    repeat: 1 # for testing
+    notifiers: p2_warning
+    title: ⚠️ P2 Test Alert
+    message: >
+      ACTIVE: "on" for {{ relative_time(states.binary_sensor.p2_test_alert_trigger.last_changed) }}
+    done_message: >
+      DONE: "off" on {{ states.binary_sensor.p2_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_test_alert
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-alerting/status"
+      actions:
+        - action: alert.p2_test_alert.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"

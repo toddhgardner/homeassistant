@@ -56,7 +56,7 @@ automation:
   ##############################################################################
   # Mobile Notification Action Handler
   # Processes notification actions back to HA Actions in the format:
-  # alert2.<entity>.<action>
+  # alert.<entity>.<action>
   ##############################################################################
   - id: alert_action_handler
     alias: Notification Action Handler
@@ -72,7 +72,7 @@ automation:
     conditions:
       - condition: template
         value_template: >
-          {{ trigger.event.data.action.startswith('alert2.') }}
+          {{ trigger.event.data.action.startswith('alert.') }}
 
     actions:
       - variables:
@@ -84,23 +84,32 @@ automation:
           # Acknowledge alert
           - conditions:
               - condition: template
-                value_template: "{{ action_command == 'ack' }}"
+                value_template: "{{ action_command == 'mute' }}"
             sequence:
-              - action: alert2.ack
+              - action: alert.turn_off
+                target:
+                  entity_id: "{{ action_entity_id }}"
+
+          # Un-Acknowledge alert
+          - conditions:
+              - condition: template
+                value_template: "{{ action_command == 'unmute' }}"
+            sequence:
+              - action: alert.turn_on
                 target:
                   entity_id: "{{ action_entity_id }}"
 
           # Snooze alert
-          - conditions:
-              - condition: template
-                value_template: "{{ action_command == 'snooze' }}"
-            sequence:
-              - action: alert2.notification_control
-                data:
-                  entity_id: "{{ action_entity_id }}"
-                  ack_at_snooze_start: false
-                  enable: true
-                  snooze_until: "{{ (now() + timedelta(minutes=states('input_number.alert_snooze_duration') | int(2))).isoformat() }}"
+          # - conditions:
+          #     - condition: template
+          #       value_template: "{{ action_command == 'snooze' }}"
+          #   sequence:
+          #     - action: alert2.notification_control
+          #       data:
+          #         entity_id: "{{ action_entity_id }}"
+          #         ack_at_snooze_start: false
+          #         enable: true
+          #         snooze_until: "{{ (now() + timedelta(minutes=states('input_number.alert_snooze_duration') | int(2))).isoformat() }}"
 
 # # alert2:
 # #   ##############################################################################

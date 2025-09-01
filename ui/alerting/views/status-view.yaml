@@ -81,6 +81,12 @@ sections:
                     - grid-template-areas: '"i . ." "i n mute" "i s ." "i l snooze" "i . ."'
                     - grid-template-columns: 1fr 1fr 1fr
                     - grid-template-rows: 1fr 1fr 1fr 1fr 1fr
+                icon: |
+                  [[[
+                    if (entity.entity_id.startsWith("alert.p1")) { return "mdi:alert-box-outline" }
+                    if (entity.entity_id.startsWith("alert.p2")) { return "mdi:alert-outline" }
+                    return "mdi:info-outline";
+                  ]]]
                 show_state: true
                 state_display: |
                   [[[
