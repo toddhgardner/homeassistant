@@ -42,13 +42,13 @@ badges:
     color: var(--orange-color)
 
   ##############################################################################
-  - type: entity
-    entity: sensor.alert_p3_active_count
-    name: INFO
-    show_name: true
-    show_state: true
-    show_icon: true
-    color: var(--blue-color)
+  # - type: entity
+  #   entity: sensor.alert_p3_active_count
+  #   name: INFO
+  #   show_name: true
+  #   show_state: true
+  #   show_icon: true
+  #   color: var(--blue-color)
 
 sections:
   - type: grid

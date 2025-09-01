@@ -43,13 +43,13 @@ badges:
     color: var(--orange-color)
 
   ##############################################################################
-  - type: entity
-    entity: sensor.alert_p3_active_count
-    name: INFO
-    show_name: true
-    show_state: true
-    show_icon: true
-    color: var(--blue-color)
+  # - type: entity
+  #   entity: sensor.alert_p3_active_count
+  #   name: INFO
+  #   show_name: true
+  #   show_state: true
+  #   show_icon: true
+  #   color: var(--blue-color)
 
 sections:
   ##############################################################################
@@ -61,20 +61,20 @@ sections:
         title: Test Alerts
         show_header_toggle: false
         entities:
-          - entity: input_boolean.test_alert_p1_trigger
+          - entity: input_boolean.p1_test_alert
             name: P1 Critical Alert Test
             secondary_info: last-changed
             icon: mdi:alert-box-outline
 
-          - entity: input_boolean.test_alert_p2_trigger
+          - entity: input_boolean.p2_test_alert
             name: P2 Warning Alert Test
             secondary_info: last-changed
             icon: mdi:alert-outline
 
-          - entity: input_boolean.test_alert_p3_trigger
-            name: P3 Info Alert Test
-            secondary_info: last-changed
-            icon: mdi:information-outline
+          # - entity: input_boolean.test_alert_p3_trigger
+          #   name: P3 Info Alert Test
+          #   secondary_info: last-changed
+          #   icon: mdi:information-outline
 
       - type: entities
         title: Test Actions
@@ -88,6 +88,6 @@ sections:
               service: input_boolean.turn_off
               service_data:
                 entity_id:
-                  - input_boolean.test_alert_p1_trigger
-                  - input_boolean.test_alert_p2_trigger
-                  - input_boolean.test_alert_p3_trigger
+                  - input_boolean.p1_test_alert_trigger
+                  - input_boolean.p2_test_alert_trigger
+                  # - input_boolean.test_alert_p3_trigger

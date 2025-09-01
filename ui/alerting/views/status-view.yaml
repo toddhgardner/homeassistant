@@ -43,13 +43,13 @@ badges:
     color: var(--orange-color)
 
   ##############################################################################
-  - type: entity
-    entity: sensor.alert_p3_active_count
-    name: INFO
-    show_name: true
-    show_state: true
-    show_icon: true
-    color: var(--blue-color)
+  # - type: entity
+  #   entity: sensor.alert_p3_active_count
+  #   name: INFO
+  #   show_name: true
+  #   show_state: true
+  #   show_icon: true
+  #   color: var(--blue-color)
 
 sections:
   ################################################################################
@@ -65,8 +65,9 @@ sections:
         card_param: cards
         filter:
           include:
-            - domain: alert2
-              state: "on"
+            - domain: alert
+              not:
+                state: "idle"
               options:
                 type: custom:button-card
                 variables:
@@ -76,26 +77,20 @@ sections:
                     - grid-template-areas: '"i . ." "i n ack" "i s ." "i l snooze" "i . ."'
                     - grid-template-columns: 1fr 1fr 1fr
                     - grid-template-rows: 1fr 1fr 1fr 1fr 1fr
-                name: |
-                  [[[
-                    return entity.attributes.friendly_name || entity.entity_id.split('.')[1];
-                  ]]]
                 show_state: true
                 state_display: |
                   [[[
-                    const time = new Date(entity.attributes.started_firing_at);
-                    const mins = Math.floor((Date.now() - time) / 60000);
-                    if (mins < 60) return `${mins}m ago`;
-                    const hours = Math.floor(mins / 60);
-                    if (hours < 24) return `${hours}h ago`;
-                    return `${Math.floor(hours / 24)}d ago`;
+                    return entity.state === "on" ? "Active" : "Acknowledged";
                   ]]]
                 show_label: true
                 label: |
                   [[[
-                    const ackStatus = entity.attributes.is_acked ? "Acknowledged" : "New";
-                    const snoozeStatus = (entity.attributes.notification_control  === 'enabled') ? "Active" : "Snooze"
-                    return `${ackStatus} ${snoozeStatus}`;
+                    const alertId = entity.entity_id.split('.')[1];
+                    const triggerSensorId = `binary_sensor.${alertId}_trigger`;
+                    const triggerSensor = states[triggerSensorId];
+                    console.log(triggerSensor);
+                    const triggerStatus = triggerSensor ? triggerSensor.state : 'unknown';
+                    return `Trigger: ${triggerStatus}`;
                   ]]]
                 custom_fields:
                   ack:
@@ -156,6 +151,4 @@ sections:
                 hold_action:
                   action: more-info
         sort:
-          method: attribute
-          attribute: data.severity
-          # reverse: false # high priority first
+          method: entity_id

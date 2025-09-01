@@ -1,11 +1,43 @@
 ################################################################################
 # Alerting
 # Core alerting and notification functionality.
-#
-# Dependencies:
-#   - @see https://github.com/redstone99/hass-alert2-ui
 ################################################################################
 ---
+notify:
+  ##############################################################################
+  # Notification Levels
+  ##############################################################################
+  - name: p1_critical
+    platform: group
+    services:
+      - service: mobile_app_todds_iphone
+
+  - name: p2_warning
+    platform: group
+    services:
+      - service: mobile_app_todds_iphone
+
+template:
+  ##############################################################################
+  # Alert Counts for UI
+  ##############################################################################
+  - sensor:
+      - name: "Alert P1 Active Count"
+        icon: mdi:alert-box-outline
+        state: >
+          {{ states.alert
+            | selectattr('object_id', 'match', '^p1_*')
+            | selectattr('state', 'ne', 'idle')
+            | list | length }}
+
+      - name: "Alert P2 Active Count"
+        icon: mdi:alert-outline
+        state: >
+          {{ states.alert
+            | selectattr('object_id', 'match', '^p2_*')
+            | selectattr('state', 'ne', 'idle')
+            | list | length }}
+
 input_number:
   ##############################################################################
   # Alert Settings
@@ -19,26 +51,6 @@ input_number:
     unit_of_measurement: minutes
     icon: mdi:timer-pause
     mode: box
-
-notify:
-  ##############################################################################
-  # Notification Levels
-  ##############################################################################
-  - name: p1_critical
-    platform: group
-    services:
-      - service: mobile_app_todds_iphone
-      #- service: mobile_app_erins_iphone
-
-  - name: p2_warning
-    platform: group
-    services:
-      - service: mobile_app_todds_iphone
-
-  - name: p3_info
-    platform: group
-    services:
-      - service: persistent_notification
 
 automation:
   ##############################################################################
@@ -90,84 +102,56 @@ automation:
                   enable: true
                   snooze_until: "{{ (now() + timedelta(minutes=states('input_number.alert_snooze_duration') | int(2))).isoformat() }}"
 
-alert2:
-  ##############################################################################
-  # Alerting Defaults for mobile actions
-  # This is wonky for Alert2 v1.15.1. It uses python string interpretation, so
-  # we can't send regular YAML, we need to send a string. Values can only
-  # resolve to strings, so we can't use `destructive: true`
-  #
-  # Defaults are based on P1 Critical alerts so that the built-in alert2
-  # exceptions notify if something breaks.
-  ##############################################################################
-  defaults:
-    icon: mdi:alert-box-outline
-    priority: high
-    notifier: p1_critical
-    reminder_frequency_mins: 30
-    data:
-      tag: "'{{ alert_entity_id }}'"
-      url: "/1-alerting/status"
-      actions: |
-        [
-          {
-            "action": "{{ alert_entity_id }}.ack",
-            "title": "Acknowledge",
-            "icon": "sfsymbols:checkmark.square.fill",
-          },
-          {
-            "action": "{{ alert_entity_id }}.snooze",
-            "title": "Snooze",
-            "icon": "sfsymbols:bell.slash.fill",
-          },
-        ]
+# # alert2:
+# #   ##############################################################################
+# #   # Alerting Defaults for mobile actions
+# #   # This is wonky for Alert2 v1.15.1. It uses python string interpretation, so
+# #   # we can't send regular YAML, we need to send a string. Values can only
+# #   # resolve to strings, so we can't use `destructive: true`
+# #   #
+# #   # Defaults are based on P1 Critical alerts so that the built-in alert2
+# #   # exceptions notify if something breaks.
+# #   ##############################################################################
+# #   defaults:
+# #     icon: mdi:alert-box-outline
+# #     priority: high
+# #     notifier: p1_critical
+# #     reminder_frequency_mins: 30
+# #     data:
+# #       tag: "'{{ alert_entity_id }}'"
+# #       url: "/1-alerting/status"
+# #       actions: |
+# #         [
+# #           {
+# #             "action": "{{ alert_entity_id }}.ack",
+# #             "title": "Acknowledge",
+# #             "icon": "sfsymbols:checkmark.square.fill",
+# #           },
+# #           {
+# #             "action": "{{ alert_entity_id }}.snooze",
+# #             "title": "Snooze",
+# #             "icon": "sfsymbols:bell.slash.fill",
+# #           },
+# #         ]
 
-  ##############################################################################
-  # Alert2 Internals
-  # Notify for errors in the Alert2 system so that we know other alerts are not
-  # functioning.
-  ##############################################################################
-  alerts:
-    - domain: system
-      name: ha_startup_delayed
-      friendly_name: "🚨 Alert2 Startup Delayed"
-      early_start: true
-      condition: >
-        {{ states('binary_sensor.alert2_ha_startup_done') == 'off' and
-          (now().timestamp() - state_attr('binary_sensor.alert2_ha_startup_done', 'start_time').timestamp()) > 300 }}
-      message: >
-        Alert system is offline
-      done_message: >
-        ✅ Cleared at {{ now().strftime('%-I:%M %p') }}.
+#   ##############################################################################
+#   # Alert2 Internals
+#   # Notify for errors in the Alert2 system so that we know other alerts are not
+#   # functioning.
+#   ##############################################################################
+#   alerts:
+#     - domain: system
+#       name: ha_startup_delayed
+#       friendly_name: "🚨 Alert2 Startup Delayed"
+#       early_start: true
+#       condition: >
+#         {{ states('binary_sensor.alert2_ha_startup_done') == 'off' and
+#           (now().timestamp() - state_attr('binary_sensor.alert2_ha_startup_done', 'start_time').timestamp()) > 300 }}
+#       message: >
+#         Alert system is offline
+#       done_message: >
+#         ✅ Cleared at {{ now().strftime('%-I:%M %p') }}.
 
-template:
-  ##############################################################################
-  # Alert Counts for UI
-  ##############################################################################
-  - sensor:
-      - name: "Alert P1 Active Count"
-        icon: mdi:alert-box-outline
-        state: >
-          {{ states.alert2
-            | selectattr('attributes.priority', 'eq', 'high')
-            | selectattr('state', 'eq', 'on')
-            | list | length }}
-
-      - name: "Alert P2 Active Count"
-        icon: mdi:alert-outline
-        state: >
-          {{ states.alert2
-            | selectattr('attributes.priority', 'eq', 'medium')
-            | selectattr('state', 'eq', 'on')
-            | list | length }}
-
-      - name: "Alert P3 Active Count"
-        icon: mdi:information-outline
-        state: >
-          {{ states.alert2
-            | selectattr('attributes.priority', 'eq', 'low')
-            | selectattr('state', 'eq', 'on')
-            | list | length }}
 
 # automation:
 #   ##############################################################################

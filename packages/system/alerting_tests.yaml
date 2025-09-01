@@ -5,54 +5,59 @@
 ---
 input_boolean:
   ##############################################################################
-  # Test Alert Triggers
+  # Test Alert Switches
   ##############################################################################
-  test_alert_p1_trigger:
-    name: "Test P1 Alert Trigger"
+  p1_test_alert:
+    name: "P1 Test Alert"
     icon: mdi:alert-box-outline
 
-  test_alert_p2_trigger:
-    name: "Test P2 Alert Trigger"
+  p2_test_alert:
+    name: "P2 Test Alert"
     icon: mdi:alert-outline
 
-  test_alert_p3_trigger:
-    name: "Test P3 Alert Trigger"
-    icon: mdi:information-outline
+template:
+  ##############################################################################
+  # Test Alert Triggers
+  # For testing, this is really simple. Just look if the switch got flipped on.
+  ##############################################################################
+  - binary_sensor:
+      - name: p1_test_alert_trigger
+        state: >
+          {{ is_state('input_boolean.p1_test_alert', 'on') }}
+        availability: on
 
-alert2:
-  alerts:
-    ############################################################################
-    # Test Alerts
-    ############################################################################
-    - domain: test
-      name: critical_alert
-      friendly_name: "TEST 🚨 P1 Critical Alert"
-      condition: "{{ is_state('input_boolean.test_alert_p1_trigger', 'on') }}"
-      message: >
-        Test P1 critical alert system.
-      done_message: >
-        ✅ Cleared at {{ now().strftime('%-I:%M %p') }}.
-      reminder_frequency_mins: 1 #30 1 minute for testing
+  - binary_sensor:
+      - name: p2_test_alert_trigger
+        state: >
+          {{ is_state('input_boolean.p2_test_alert', 'on') }}
+        availability: on
 
-    - domain: test
-      name: p2_warning
-      priority: "medium"
-      icon: mdi:alert-outline
-      reminder_frequency_mins: 1
-      friendly_name: "TEST: P2 Warning Alert"
-      condition: "{{ is_state('input_boolean.test_alert_p2_trigger', 'on') }}"
-      message: >
-        🧪 TEST P2 WARNING: This is a test of the P2 warning alert system.
-        Triggered at {{ now().strftime('%-I:%M %p') }}.
+alert:
+  ##############################################################################
+  # Test Alerts
+  ##############################################################################
+  p1_test_alert:
+    name: P1 Test Alert
+    entity_id: binary_sensor.p1_test_alert_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    repeat: 1
+    title: "title"
+    message: "message"
+    done_message: "done"
+    notifiers:
+      - p1_critical
 
-    ############################################################################
-    - domain: test
-      name: p3_info
-      priority: "low"
-      icon: mdi:information-outline
-      reminder_frequency_mins: 1
-      friendly_name: "TEST: P3 Info Alert"
-      condition: "{{ is_state('input_boolean.test_alert_p3_trigger', 'on') }}"
-      message: >
-        🧪 TEST P3 INFO: This is a test of the P3 info alert system.
-        Triggered at {{ now().strftime('%-I:%M %p') }}.
+  p2_test_alert:
+    name: P2 Test Alert
+    entity_id: binary_sensor.p2_test_alert_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    repeat: 1
+    title: "title"
+    message: "message"
+    done_message: "done"
+    notifiers:
+      - p2_warning
