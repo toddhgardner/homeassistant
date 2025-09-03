@@ -1,54 +1,67 @@
 ---
 ### Theater ###
 
+################################################################################
+# Device Aliases
+################################################################################
+homeassistant:
+  customize:
+    package.node_anchors:
+      theater_media_player: &theater_media_player media_player.home_theater
+      theater_lights_main: &theater_lights_main light.theater_main_lights
+      theater_lights_decor: &theater_lights_decor light.theater_sconces
+
+################################################################################
+# Scenes
+# For various playback states
+################################################################################
 scene:
-  ##############################################################################
   - id: theater_lights_paused
     name: Theater Lights Paused
     icon: mdi:pause-circle
     entities:
-      light.theater_main_lights:
+      *theater_lights_main :
         state: "on"
         brightness: 25
-      light.theater_sconces:
+      *theater_lights_decor :
         state: "on"
         brightness: 255
 
-  ##############################################################################
   - id: theater_lights_playing
     name: Theater Lights Playing
     icon: mdi:play-circle
     entities:
-      light.theater_main_lights:
+      *theater_lights_main :
         state: "off"
-      light.theater_sconces:
+      *theater_lights_decor :
         state: "on"
         brightness: 64
 
-  ##############################################################################
   - id: theater_lights_full
     name: Theater Lights Full
     icon: mdi:lightbulb-on
     entities:
-      light.theater_main_lights:
+      *theater_lights_main :
         state: "on"
         brightness: 255
-      light.theater_sconces:
+      *theater_lights_decor :
         state: "off"
 
 automation:
+  ##############################################################################
+  # Automations for Theater Lighting
   ##############################################################################
   - id: theater_auto_pause_lights
     alias: Theater Auto Pause Lights
     description: "Set theater-lights-paused scene when Apple TV is paused or idle"
     triggers:
       - trigger: state
-        entity_id: media_player.home_theater
+        entity_id: *theater_media_player
         to: "paused"
         for:
           seconds: 2
       - trigger: state
-        entity_id: media_player.home_theater
+        entity_id: *theater_media_player
         to: "idle"
         for:
           seconds: 2
@@ -67,7 +80,7 @@ automation:
     description: "Set theater-lights-playing scene when Apple TV starts playing content"
     triggers:
       - trigger: state
-        entity_id: media_player.home_theater
+        entity_id: *theater_media_player
         to: "playing"
         for:
           seconds: 10
@@ -85,10 +98,10 @@ automation:
     description: "Set theater-lights-full scene when Apple TV turns off"
     triggers:
       - trigger: state
-        entity_id: media_player.home_theater
+        entity_id: *theater_media_player
         to: "standby"
       - trigger: state
-        entity_id: media_player.home_theater
+        entity_id: *theater_media_player
         to: "off"
     conditions: []
     actions:

@@ -1,18 +1,29 @@
 ---
 ### Back Office ###
 
+################################################################################
+# Device Aliases
+################################################################################
+homeassistant:
+  customize:
+    package.node_anchors:
+      back_office_lights: &back_office_lights switch.back_office_lightswitch
+      back_office_lights_wall: &back_office_lights_wall light.back_office_decor_lighting
+
 automation:
+  ##############################################################################
+  # Automations to sync lighting with switch
   ##############################################################################
   - id: back_office_auto_lights
     alias: Back Office Auto Lights
     description: "Toggle the wall lighting with the main switch."
     triggers:
       - trigger: state
-        entity_id: switch.back_office_lightswitch
+        entity_id: *back_office_lights
         to: "off"
         id: back_office_switch_off
       - trigger: state
-        entity_id: switch.back_office_lightswitch
+        entity_id: *back_office_lights
         to: "on"
         id: back_office_switch_on
     actions:
@@ -23,13 +34,13 @@ automation:
             sequence:
               - action: light.turn_off
                 target:
-                  entity_id: light.back_office_decor_lighting
+                  entity_id: *back_office_lights_wall
           - conditions:
               - condition: trigger
                 id: back_office_switch_on
             sequence:
               - action: light.turn_on
                 target:
-                  entity_id: light.back_office_decor_lighting
+                  entity_id: *back_office_lights_wall
     mode: single
   ##############################################################################
