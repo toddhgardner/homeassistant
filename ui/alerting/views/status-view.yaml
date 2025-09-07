@@ -71,14 +71,18 @@ sections:
               options:
                 type: custom:button-card
                 variables:
+                  alert_trigger_entity_id: |
+                    [[[
+                      return `${entity.entity_id.replace("alert.", "binary_sensor.")}_trigger`;
+                    ]]]
                   source_entity_id: |
                     [[[
-                      const trigger_entity = states[`${entity.entity_id.replace("alert.", "binary_sensor.")}_trigger`];
+                      const trigger_entity = states[variables.alert_trigger_entity_id];
                       return trigger_entity.attributes.source_entity_id;
                     ]]]
                 styles:
                   grid:
-                    - grid-template-areas: '"i . ." "i n mute" "i s ." "i l snooze" "i . ."'
+                    - grid-template-areas: '"i . ." "i n mute" "i message ." "i s ." "i l ."'
                     - grid-template-columns: 1fr 1fr 1fr
                     - grid-template-rows: 1fr 1fr 1fr 1fr 1fr
                 icon: |
@@ -98,6 +102,11 @@ sections:
                     return helpers.relativeTime(states[variables.source_entity_id].last_changed);
                   ]]]
                 custom_fields:
+                  message: |
+                    [[[
+                      const trigger = states[variables.alert_trigger_entity_id];
+                      return trigger?.attributes?.message;
+                    ]]]
                   mute:
                     card:
                       type: custom:button-card

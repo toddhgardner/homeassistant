@@ -27,6 +27,7 @@ template:
         availability: on
         attributes:
           source_entity_id: "input_boolean.p1_test_alert"
+          message: "p1 test on"
 
   - binary_sensor:
       - name: p2_test_alert_trigger
@@ -35,6 +36,7 @@ template:
         availability: on
         attributes:
           source_entity_id: "input_boolean.p2_test_alert"
+          message: "p2 test on"
 
 alert:
   ##############################################################################
@@ -50,9 +52,9 @@ alert:
     repeat: 1 # for testing
     title: 🚨 P1 Test Alert
     message: >
-      ACTIVE: "on" for {{ relative_time(states.binary_sensor.p1_test_alert_trigger.last_changed) }}
+      ACTIVE: "{{ state_attr("binary_sensor.p1_test_alert_trigger", "message") }}" for {{ relative_time(states.binary_sensor.p1_test_alert_trigger.last_changed) }}
     done_message: >
-      DONE: "off" on {{ states.binary_sensor.p1_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+      DONE: "{{ states(state_attr('binary_sensor.p1_test_alert_trigger', 'source_entity_id'), rounded=True, with_unit=True) }}" on {{ states.binary_sensor.p1_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p1_test_alert
       subtitle: Lavender Circle
@@ -75,9 +77,9 @@ alert:
     repeat: 1 # for testing
     title: ⚠️ P2 Test Alert
     message: >
-      ACTIVE: {{ states(state_attr('binary_sensor.p2_test_alert_trigger', 'source_entity_id'), rounded=True, with_unit=True) }} for {{ relative_time(states.binary_sensor.p2_test_alert_trigger.last_changed) }}
+      ACTIVE: "{{ state_attr("binary_sensor.p2_test_alert_trigger", "message") }}" for {{ relative_time(states.binary_sensor.p2_test_alert_trigger.last_changed) }}
     done_message: >
-      DONE: {{ states(state_attr('binary_sensor.p2_test_alert_trigger', 'source_entity_id'), rounded=True, with_unit=True) }} on {{ states.binary_sensor.p2_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+      DONE: "{{ states(state_attr('binary_sensor.p2_test_alert_trigger', 'source_entity_id'), rounded=True, with_unit=True) }}" on {{ states.binary_sensor.p2_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_test_alert
       subtitle: Lavender Circle
