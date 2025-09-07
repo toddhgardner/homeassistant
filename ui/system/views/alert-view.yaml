@@ -1,30 +1,31 @@
-################################################################################
-# Alerting UI
-# Status View
+# Alert View
+# System Dashboard
 #
 # View the current status of alerts in the system
-################################################################################
 ---
-title: STATUS
-path: status
+title: ALERTS
+path: alerts
 type: sections
 max_columns: 1
 
-################################################################################
+#
+# Header
+#
 header:
   card:
     type: markdown
     text_only: true
     content: |-
-      # Alerting Status
+      # Alerts
   layout: center
   badges_position: top
   badges_wrap: wrap
 
-################################################################################
+#
 # Badges
-################################################################################
+#
 badges:
+
   - type: entity
     entity: sensor.alert_p1_active_count
     name: CRITICAL
@@ -33,7 +34,6 @@ badges:
     show_icon: true
     color: var(--red-color)
 
-  ##############################################################################
   - type: entity
     entity: sensor.alert_p2_active_count
     name: WARNING
@@ -42,19 +42,11 @@ badges:
     show_icon: true
     color: var(--orange-color)
 
-  ##############################################################################
-  # - type: entity
-  #   entity: sensor.alert_p3_active_count
-  #   name: INFO
-  #   show_name: true
-  #   show_state: true
-  #   show_icon: true
-  #   color: var(--blue-color)
-
 sections:
-  ################################################################################
-  # Section 1 TODO
-  ################################################################################
+
+  #
+  # Active Alerts
+  #
   - type: grid
     cards:
       - type: custom:auto-entities

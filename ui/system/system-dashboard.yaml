@@ -1,0 +1,4 @@
+views:
+  - !include ./views/alert-view.yaml
+  - !include ./views/devices-view.yaml
+  - !include ./views/test-view.yaml

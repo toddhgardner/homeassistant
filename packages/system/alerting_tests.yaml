@@ -59,7 +59,7 @@ alert:
       tag: p1_test_alert
       subtitle: Lavender Circle
       group: ha
-      url: "/1-alerting/status"
+      url: "/1-system/alerts"
       push:
         interruption-level: critical
       actions:
@@ -84,7 +84,7 @@ alert:
       tag: p2_test_alert
       subtitle: Lavender Circle
       group: ha
-      url: "/1-alerting/status"
+      url: "/1-system/alerts"
       actions:
         - action: alert.p2_test_alert.mute
           title: "Mute"

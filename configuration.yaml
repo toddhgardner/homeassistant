@@ -33,8 +33,11 @@ lovelace:
   #   - url: /hacsfiles/logbook-card/logbook-card.js
   #     type: module
 
-  ##############################################################################
+  #
+  # Dashboards
+  #
   dashboards:
+
     0-lavender:
       mode: yaml
       title: Lavender
@@ -42,9 +45,9 @@ lovelace:
       show_in_sidebar: true
       filename: ui/lavender/lavender-dashboard.yaml
 
-    1-alerting:
+    1-system:
       mode: yaml
-      title: Alerting
-      icon: mdi:home-alert-outline
+      title: System
+      icon: mdi:home-lightbulb
       show_in_sidebar: true
-      filename: ui/alerting/alerting-dashboard.yaml
+      filename: ui/system/system-dashboard.yaml

@@ -1,4 +1,0 @@
-views:
-  - !include ./views/status-view.yaml
-  - !include ./views/settings-view.yaml
-  - !include ./views/test-view.yaml

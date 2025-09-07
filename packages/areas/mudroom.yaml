@@ -1,14 +1,30 @@
+# Mudroom
+# Area
 ---
-### Mudroom ###
-
+#
+# Device Configuration
+#
 homeassistant:
   customize:
     package.node_anchors:
       mudroom_closet_door: &mudroom_closet_door binary_sensor.mudroom_closet_door
       mudroom_closet_lights: &mudroom_closet_lights switch.mudroom_closet_light_switch
+      pkg: &package
+        package: area/mudroom
 
+    *mudroom_closet_door :
+      <<: *package
+      friendly_name: Mudroom Closet Door
+
+    *mudroom_closet_lights :
+      <<: *package
+      friendly_name: Mudroom Closet Lights
+
+#
+# Automations
+#
 automation:
-  ##############################################################################
+
   - id: mudroom_closet_auto_lights
     alias: Mudroom Closet Auto Lights
     description: >
@@ -42,7 +58,7 @@ automation:
                 target:
                   entity_id: *mudroom_closet_lights
     mode: restart
-  ##############################################################################
+
   - id: mudroom_closet_lights_auto_off
     alias: Mudroom Closet Lights Auto Off
     description: "Turn off idle closet lights."

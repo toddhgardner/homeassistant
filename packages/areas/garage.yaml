@@ -1,9 +1,9 @@
+# Garage
+# Area
 ---
-### Garage ###
-
-################################################################################
-# Device Aliases
-################################################################################
+#
+# Device Configuration
+#
 homeassistant:
   customize:
     package.node_anchors:
@@ -12,10 +12,27 @@ homeassistant:
       garage_lights_inside: &garage_lights_inside switch.garage_lights
       garage_lights_outside: &garage_lights_outside switch.outside_garage_lights
       garage_freezer_temp: &garage_freezer_temp sensor.garage_freezer_monitor_temperature
+      pkg: &package
+        package: area/garage
+    *garage_door_double :
+      <<: *package
+      friendly_name: Garage Double Door
+    *garage_door_double_lock :
+      <<: *package
+      friendly_name: Garage Double Door Lock
+    *garage_lights_inside :
+      <<: *package
+      friendly_name: Garage Inside Lights
+    *garage_lights_outside :
+      <<: *package
+      friendly_name: Garage Outside Lights
+    *garage_freezer_temp :
+      <<: *package
+      friendly_name: Garage Freezer Temperature
 
-################################################################################
+#
 # Automations
-################################################################################
+#
 automation:
   - id: garage_double_auto_close
     alias: Garage Double Auto Close
@@ -37,7 +54,7 @@ automation:
         target:
           entity_id: *garage_door_double
     mode: restart
-  ##############################################################################
+
   - id: garage_double_auto_lights
     alias: Garage Double Auto Lights
     description: "Turn on garage lights when double garage door is open."
@@ -88,11 +105,11 @@ automation:
                   entity_id: scene.garage_lights_previous_state
     mode: restart
 
-################################################################################
+#
 # Alert Triggers
-# Template sensors that act as triggers for alerts.
-################################################################################
+#
 template:
+
   - binary_sensor:
       - name: p2_garage_double_open_trigger
         state: >
@@ -103,7 +120,7 @@ template:
           minutes: 60
         attributes:
           source_entity_id: *garage_door_double
-  ##############################################################################
+
   - binary_sensor:
       - name: p1_garage_freezer_temp_trigger
         state: >
@@ -116,10 +133,11 @@ template:
         attributes:
           source_entity_id: *garage_freezer_temp
 
-################################################################################
+#
 # Alerts
-################################################################################
+#
 alert:
+
   p2_garage_double_open:
     name: Garage Double Door Open
     entity_id: binary_sensor.p2_garage_double_open_trigger
@@ -139,12 +157,12 @@ alert:
       tag: p2_garage_double_open
       subtitle: Lavender Circle
       group: ha
-      url: "/1-alerting/status"
+      url: "/1-system/alerts"
       actions:
         - action: alert.p2_garage_double_open.mute
           title: "Mute"
           icon: "sfsymbols:bell.slash"
-  ##############################################################################
+
   p1_garage_freezer_temp:
     name: Garage Freezer Temp
     entity_id: binary_sensor.p1_garage_freezer_temp_trigger
@@ -164,7 +182,7 @@ alert:
       tag: p1_garage_freezer_temp
       subtitle: Lavender Circle
       group: ha
-      url: "/1-alerting/status"
+      url: "/1-system/alerts"
       push:
         interruption-level: critical
       actions:

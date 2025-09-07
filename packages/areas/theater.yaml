@@ -1,21 +1,35 @@
+# Theater
+# Area
 ---
-### Theater ###
-
-################################################################################
-# Device Aliases
-################################################################################
+#
+# Device Configuration
+#
 homeassistant:
   customize:
     package.node_anchors:
       theater_media_player: &theater_media_player media_player.home_theater
       theater_lights_main: &theater_lights_main light.theater_main_lights
       theater_lights_decor: &theater_lights_decor light.theater_sconces
+      pkg: &package
+        package: area/theater
 
-################################################################################
+    *theater_media_player :
+      <<: *package
+      friendly_name: Theater AppleTV
+
+    *theater_lights_main :
+      <<: *package
+      friendly_name: Theater Lights
+
+    *theater_lights_decor :
+      <<: *package
+      friendly_name: Theater Decor Lighting
+
+#
 # Scenes
-# For various playback states
-################################################################################
+#
 scene:
+
   - id: theater_lights_paused
     name: Theater Lights Paused
     icon: mdi:pause-circle
@@ -47,10 +61,11 @@ scene:
       *theater_lights_decor :
         state: "off"
 
+#
+# Automations
+#
 automation:
-  ##############################################################################
-  # Automations for Theater Lighting
-  ##############################################################################
+
   - id: theater_auto_pause_lights
     alias: Theater Auto Pause Lights
     description: "Set theater-lights-paused scene when Apple TV is paused or idle"
@@ -74,7 +89,6 @@ automation:
           transition: 2
     mode: restart
 
-  ##############################################################################
   - id: theater_auto_playing_lights
     alias: Theater Auto Playing Lights
     description: "Set theater-lights-playing scene when Apple TV starts playing content"
@@ -92,7 +106,6 @@ automation:
           transition: 2
     mode: restart
 
-  ##############################################################################
   - id: theater_auto_off_lights
     alias: Theater Auto Off Lights
     description: "Set theater-lights-full scene when Apple TV turns off"
@@ -111,4 +124,3 @@ automation:
         data:
           transition: 2
     mode: restart
-  ##############################################################################
