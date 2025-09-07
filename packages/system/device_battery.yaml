@@ -1,0 +1,90 @@
+# Device Battery
+# System
+#
+# Monitor the status of device batteries
+---
+#
+# Device Configuration
+#
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: system/device_battery
+        battery_monitor: True
+
+    sensor.garage_freezer_monitor_battery:
+      <<: *package
+      friendly_name: Garage Freezer Monitor Battery
+
+    sensor.mudroom_closet_door_battery:
+      <<: *package
+      friendly_name: Mudroom Closet Door Battery
+
+#
+# Alert Triggers
+#
+template:
+  - binary_sensor:
+
+      - name: p2_device_battery_trigger
+        state: >
+          {% set ns = namespace(found=false) %}
+          {% for entity in states
+            | selectattr('attributes.device_class', 'eq', 'battery')
+            | selectattr('attributes.battery_monitor', 'eq', true) %}
+            {% if entity.state not in ['unavailable', 'unknown', 'none']
+               and entity.state | int(-1) <= 20 %}
+              {% set ns.found = true %}
+              {% break %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.found }}
+        attributes:
+          message: >
+            {{ this.attributes.device_count }} low batteries
+          source_entity_id: binary_sensor.p2_device_battery_trigger
+          device_count: >
+            {{ this.attributes.device_list | count }}
+          device_list: >
+            {% set ns = namespace(batteries=[]) %}
+            {% for entity in states
+              | selectattr('attributes.device_class', 'eq', 'battery')
+              | selectattr('attributes.battery_monitor', 'eq', true) %}
+              {% if entity.state not in ['unavailable', 'unknown', 'none']
+                 and entity.state | int(-1) <= 20 %}
+                {% set ns.batteries = ns.batteries + [device_name(entity.entity_id)] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.batteries }}
+
+#
+# Alerts
+#
+alert:
+
+  p2_device_battery:
+    name: Device Battery Warning
+    entity_id: binary_sensor.p2_device_battery_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_warning
+    repeat:
+      - 120
+      - 240
+    title: 🪫 Low Battery
+    message: >
+      ACTIVE: "{{ state_attr('binary_sensor.p2_device_battery_trigger', 'message') }}" for {{ relative_time(states.binary_sensor.p2_device_battery_trigger.last_changed) }}
+      Devices: {{ state_attr('binary_sensor.p2_device_battery_trigger', 'device_list') }}
+    done_message: >
+      DONE: All batteries charged as of {{ states.binary_sensor.p2_device_battery_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_device_battery
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-system/alerts"
+      actions:
+        - action: alert.p2_device_health.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"

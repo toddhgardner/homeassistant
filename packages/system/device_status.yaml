@@ -1,4 +1,4 @@
-# Device Health
+# Device Status
 # System
 #
 # Monitor the availability of devices critical to defined automations and alerts.
@@ -9,7 +9,7 @@
 template:
   - binary_sensor:
 
-      - name: p2_device_health_trigger
+      - name: p2_device_status_trigger
         state: >
           {{ states
             | selectattr('attributes.package', 'defined')
@@ -20,20 +20,15 @@ template:
           minutes: 5
         attributes:
           message: >
-            {{ this.attributes.offline_count }} devices offline
-          source_entity_id: >
-            {{ states
-              | selectattr('attributes.package', 'defined')
-              | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
-              | first
-              | attr("entity_id") }}
-          offline_count: >
+            {{ this.attributes.device_count }} devices offline
+          source_entity_id: binary_sensor.p2_device_status_trigger
+          device_count: >
             {{ states
               | selectattr('attributes.package', 'defined')
               | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
               | list
               | length }}
-          offline_devices: >
+          device_list: >
             {% set devices = states
               | selectattr('attributes.package', 'defined')
               | selectattr('state', 'in', ['unavailable', 'unknown', 'none']) %}
@@ -47,9 +42,9 @@ template:
 #
 alert:
 
-  p2_device_health:
-    name: Device Health Warning
-    entity_id: binary_sensor.p2_device_health_trigger
+  p2_device_status:
+    name: Device Status Warning
+    entity_id: binary_sensor.p2_device_status_trigger
     state: "on"
     can_acknowledge: true
     skip_first: false
@@ -59,16 +54,16 @@ alert:
       - 240
     title: ⚠️ Device Offline
     message: >
-      ACTIVE: {{ state_attr('binary_sensor.p2_device_health_trigger', 'offline_count') }} device(s) offline for {{ relative_time(states.binary_sensor.p2_device_health_trigger.last_changed) }}
-      Devices: {{ state_attr('binary_sensor.p2_device_health_trigger', 'offline_devices') }}
+      ACTIVE: "{{ state_attr('binary_sensor.p2_device_status_trigger', 'message') }}" for {{ relative_time(states.binary_sensor.p2_device_status_trigger.last_changed) }}
+      Devices: {{ state_attr('binary_sensor.p2_device_status_trigger', 'device_list') }}
     done_message: >
-      DONE: All essential devices are back online as of {{ states.binary_sensor.p2_device_health_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+      DONE: All essential devices are back online as of {{ states.binary_sensor.p2_device_status_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
     data:
-      tag: p2_device_health
+      tag: p2_device_status
       subtitle: Lavender Circle
       group: ha
       url: "/1-system/alerts"
       actions:
-        - action: alert.p2_device_health.mute
+        - action: alert.p2_device_status.mute
           title: "Mute"
           icon: "sfsymbols:bell.slash"
