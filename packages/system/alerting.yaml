@@ -83,3 +83,21 @@ automation:
               - action: alert.turn_on
                 target:
                   entity_id: "{{ action_entity_id }}"
+
+  # Daily Re-enable Muted Alerts
+  # Runs at 9am to turn on any alerts that are off
+  - id: alert_daily_unmute
+    alias: Daily Re-enable Muted Alerts
+    description: >
+      Re-enables any muted alerts daily at 9am to prevent forgetting about them.
+    triggers:
+      - trigger: time
+        at: "09:00:00"
+    actions:
+      - action: alert.turn_on
+        target:
+          entity_id: >
+            {{ states.alert
+              | selectattr('state', 'eq', 'off')
+              | map(attribute='entity_id')
+              | list }}
