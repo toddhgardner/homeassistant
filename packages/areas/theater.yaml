@@ -113,9 +113,11 @@ automation:
       - trigger: state
         entity_id: *theater_media_player
         to: "standby"
+        not_from: "unknown" # so lights dont come on when it disconnects or reboots
       - trigger: state
         entity_id: *theater_media_player
         to: "off"
+        not_from: "unknown" # so lights dont come on when it disconnects or reboots
     conditions: []
     actions:
       - action: scene.turn_on
