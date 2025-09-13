@@ -8,12 +8,12 @@ homeassistant:
   customize:
     package.node_anchors:
       back_office_lights: &back_office_lights switch.back_office_lightswitch
-      back_office_lights_wall: &back_office_wall_lights light.back_office_decor_lighting
+      back_office_lights_wall: &back_office_wall_lights switch.back_office_wall_lights
       pkg: &package
         package: area/back_office
     *back_office_lights :
       <<: *package
-      friendly_name: Back Office Lightswitch
+      friendly_name: Back Office Lights
     *back_office_wall_lights :
       <<: *package
       friendly_name: Back Office Wall Lights
@@ -40,15 +40,14 @@ automation:
               - condition: trigger
                 id: back_office_switch_off
             sequence:
-              - action: light.turn_off
+              - action: switch.turn_off
                 target:
                   entity_id: *back_office_wall_lights
           - conditions:
               - condition: trigger
                 id: back_office_switch_on
             sequence:
-              - action: light.turn_on
+              - action: switch.turn_on
                 target:
                   entity_id: *back_office_wall_lights
     mode: single
-
