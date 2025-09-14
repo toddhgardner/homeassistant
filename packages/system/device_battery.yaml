@@ -13,20 +13,31 @@ homeassistant:
         package: system/device_battery
         battery_monitor: True
 
+    sensor.basement_bath_leak_battery:
+      <<: *package
+      friendly_name: Basement Bath Leak Battery
+
     sensor.garage_freezer_monitor_battery:
       <<: *package
       friendly_name: Garage Freezer Monitor Battery
 
+    sensor.kitchen_sink_leak_battery:
+      <<: *package
+      friendly_name: Kitchen Sink Leak Battery
+
     sensor.mudroom_closet_door_battery:
       <<: *package
       friendly_name: Mudroom Closet Door Battery
+
+    sensor.utility_drain_leak_battery:
+      <<: *package
+      friendly_name: Utility Drain Leak Battery
 
 #
 # Alert Triggers
 #
 template:
   - binary_sensor:
-
       - name: p2_device_battery_trigger
         state: >
           {% set ns = namespace(found=false) %}
@@ -34,7 +45,7 @@ template:
             | selectattr('attributes.device_class', 'eq', 'battery')
             | selectattr('attributes.battery_monitor', 'eq', true) %}
             {% if entity.state not in ['unavailable', 'unknown', 'none']
-               and entity.state | int(-1) <= 20 %}
+              and entity.state | int(-1) <= 20 %}
               {% set ns.found = true %}
               {% break %}
             {% endif %}
@@ -52,7 +63,7 @@ template:
               | selectattr('attributes.device_class', 'eq', 'battery')
               | selectattr('attributes.battery_monitor', 'eq', true) %}
               {% if entity.state not in ['unavailable', 'unknown', 'none']
-                 and entity.state | int(-1) <= 20 %}
+                and entity.state | int(-1) <= 20 %}
                 {% set ns.batteries = ns.batteries + [device_name(entity.entity_id)] %}
               {% endif %}
             {% endfor %}
@@ -62,7 +73,6 @@ template:
 # Alerts
 #
 alert:
-
   p2_device_battery:
     name: Device Battery Warning
     entity_id: binary_sensor.p2_device_battery_trigger
