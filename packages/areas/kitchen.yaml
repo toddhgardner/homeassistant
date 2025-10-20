@@ -1,4 +1,4 @@
-# Mudroom
+# Kitchen
 # Area
 ---
 #
@@ -7,36 +7,36 @@
 homeassistant:
   customize:
     package.node_anchors:
-      mudroom_closet_door: &mudroom_closet_door binary_sensor.mudroom_closet_door
-      mudroom_closet_lights: &mudroom_closet_lights switch.mudroom_closet_light_switch
+      kitchen_pantry_door: &kitchen_pantry_door binary_sensor.kitchen_pantry_door
+      kitchen_pantry_lights: &kitchen_pantry_lights switch.kitchen_pantry_light_switch
       pkg: &package
-        package: area/mudroom
+        package: area/kitchen
 
-    *mudroom_closet_door :
+    *kitchen_pantry_door :
       <<: *package
-      friendly_name: Mudroom Closet Door
+      friendly_name: Kitchen Pantry Door
 
-    *mudroom_closet_lights :
+    *kitchen_pantry_lights :
       <<: *package
-      friendly_name: Mudroom Closet Lights
+      friendly_name: Kitchen Pantry Lights
 
 #
 # Automations
 #
 automation:
 
-  - id: mudroom_closet_auto_lights
-    alias: Mudroom Closet Auto Lights
+  - id: kitchen_pantry_auto_lights
+    alias: Kitchen Pantry Auto Lights
     description: >
-      Turn on closet lights when door opens, turn off 2 minutes after door
+      Turn on pantry lights when door opens, turn off 2 minutes after door
       closes.
     triggers:
       - trigger: state
-        entity_id: *mudroom_closet_door
+        entity_id: *kitchen_pantry_door
         to: "on"
         id: door_opened
       - trigger: state
-        entity_id: *mudroom_closet_door
+        entity_id: *kitchen_pantry_door
         to: "off"
         for:
           minutes: 2
@@ -49,27 +49,27 @@ automation:
             sequence:
               - action: switch.turn_on
                 target:
-                  entity_id: *mudroom_closet_lights
+                  entity_id: *kitchen_pantry_lights
           - conditions:
               - condition: trigger
                 id: door_closed
             sequence:
               - action: switch.turn_off
                 target:
-                  entity_id: *mudroom_closet_lights
+                  entity_id: *kitchen_pantry_lights
     mode: restart
 
-  - id: mudroom_closet_lights_auto_off
-    alias: Mudroom Closet Lights Auto Off
-    description: "Turn off idle closet lights."
+  - id: kitchen_pantry_lights_auto_off
+    alias: Kitchen Pantry Lights Auto Off
+    description: "Turn off idle pantry lights."
     triggers:
       - trigger: state
-        entity_id: *mudroom_closet_lights
+        entity_id: *kitchen_pantry_lights
         to: "on"
         for:
           minutes: 10
     actions:
       - action: switch.turn_off
         target:
-          entity_id: *mudroom_closet_lights
+          entity_id: *kitchen_pantry_lights
     mode: restart

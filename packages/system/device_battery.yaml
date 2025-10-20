@@ -21,6 +21,10 @@ homeassistant:
       <<: *package
       friendly_name: Garage Freezer Monitor Battery
 
+    sensor.kitchen_pantry_door_battery:
+      <<: *package
+      friendly_name: Kitchen Pantry Door Battery
+
     sensor.kitchen_sink_leak_battery:
       <<: *package
       friendly_name: Kitchen Sink Leak Battery

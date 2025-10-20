@@ -11,18 +11,15 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: system/leak_detector
-        icon: mdi:water
         show_as: moisture
         leak_detector: True
 
     binary_sensor.utility_drain_leak:
       <<: *package
       friendly_name: Utility Drain Leak
-
     binary_sensor.kitchen_sink_leak:
       <<: *package
       friendly_name: Kitchen Sink Leak
-
     binary_sensor.basement_bath_leak:
       <<: *package
       friendly_name: Basement Bath Leak
@@ -37,7 +34,7 @@ template:
             | selectattr('attributes.leak_detector', 'eq', true)
             | selectattr('state', 'eq', 'on')
             | list 
-            | length > 0 }}
+            | count | int(0) > 0 }}
         delay_on:
           minutes: 5
         attributes:
@@ -47,7 +44,7 @@ template:
               | selectattr('attributes.leak_detector', 'eq', true) 
               | selectattr('state', 'eq', 'on') 
               | list
-              | count }}
+              | count | int(0) }}
           device_first: >
             {{ states 
               | selectattr('attributes.leak_detector', 'eq', true) 
