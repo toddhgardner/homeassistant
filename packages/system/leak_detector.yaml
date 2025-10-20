@@ -33,28 +33,28 @@ template:
           {{ states
             | selectattr('attributes.leak_detector', 'eq', true)
             | selectattr('state', 'eq', 'on')
-            | list 
+            | list
             | count | int(0) > 0 }}
         delay_on:
           minutes: 5
         attributes:
           source_entity_id: binary_sensor.p1_leak_detector_trigger # self
           device_count: >
-            {{ states 
-              | selectattr('attributes.leak_detector', 'eq', true) 
-              | selectattr('state', 'eq', 'on') 
+            {{ states
+              | selectattr('attributes.leak_detector', 'eq', true)
+              | selectattr('state', 'eq', 'on')
               | list
               | count | int(0) }}
           device_first: >
-            {{ states 
-              | selectattr('attributes.leak_detector', 'eq', true) 
-              | selectattr('state', 'eq', 'on') 
+            {{ states
+              | selectattr('attributes.leak_detector', 'eq', true)
+              | selectattr('state', 'eq', 'on')
               | list
               | map(attribute="attributes.friendly_name") | first }}
           device_list: >
-            {{ states 
-              | selectattr('attributes.leak_detector', 'eq', true) 
-              | selectattr('state', 'eq', 'on') 
+            {{ states
+              | selectattr('attributes.leak_detector', 'eq', true)
+              | selectattr('state', 'eq', 'on')
               | list
               | map(attribute="attributes.friendly_name") | join(", ") }}
           message: >

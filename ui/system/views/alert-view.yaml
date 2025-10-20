@@ -6,7 +6,7 @@
 title: ALERTS
 path: alerts
 type: sections
-max_columns: 1
+max_columns: 2
 
 #
 # Header
@@ -50,7 +50,7 @@ sections:
   - type: grid
     cards:
       - type: custom:auto-entities
-        show_empty: false
+        show_empty: true
         card:
           type: vertical-stack
           title: Active Alerts
@@ -119,3 +119,33 @@ sections:
                   entity: "[[[ return variables.source_entity_id ]]]"
         sort:
           method: entity_id
+
+  #
+  # Alert History
+  #
+  - type: grid
+    cards:
+      - type: custom:auto-entities
+        filter:
+          include:
+            - entity_id: binary_sensor.*_trigger
+              options:
+                hidden_state:
+                  - "off"
+                state_map:
+                  - value: "on"
+                    label: ""
+                    icon: mdi:alert
+                    icon_color: red
+                attributes:
+                  - value: message
+                    name: Alert
+                  - value: device_list
+                    name: Devices
+        card:
+          type: custom:multiple-logbook-card
+          title: Latest Alerts
+          no_event: No recent alerts
+          history: 7
+          group_by_day: true
+          date_format: relative
