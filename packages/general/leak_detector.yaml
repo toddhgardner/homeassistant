@@ -1,0 +1,124 @@
+# Leak Detector
+# General
+#
+# Trigger alerts if any leak detector goes off.
+---
+#
+# Device Configuration
+#
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: general/leak_detector
+        show_as: moisture
+        leak_detector: True
+
+    binary_sensor.basement_bath_leak:
+      <<: *package
+      friendly_name: Basement Bath Leak
+
+    binary_sensor.guest_bath_leak:
+      <<: *package
+      friendly_name: Guest Bath Leak
+
+    binary_sensor.half_bath_leak:
+      <<: *package
+      friendly_name: Half Bath Leak
+
+    binary_sensor.kitchen_refrigerator_leak:
+      <<: *package
+      friendly_name: Kitchen Refrigerator Leak
+
+    binary_sensor.kitchen_sink_leak:
+      <<: *package
+      friendly_name: Kitchen Sink Leak
+
+    binary_sensor.laundry_leak:
+      <<: *package
+      friendly_name: Laundry Leak
+
+    binary_sensor.primary_bath_toilet_leak:
+      <<: *package
+      friendly_name: Primary Bath Toilet Leak
+
+    binary_sensor.primary_bath_tub_leak:
+      <<: *package
+      friendly_name: Primary Bath Tub Leak
+
+    binary_sensor.suite_bath_leak:
+      <<: *package
+      friendly_name: Suite Bath Leak
+
+    binary_sensor.utility_drain_leak:
+      <<: *package
+      friendly_name: Utility Drain Leak
+
+    input_boolean.test_leak:
+      <<: *package
+      friendly_name: Test Leak
+
+#
+# Test Sensor
+#
+input_boolean:
+  test_leak:
+
+#
+# Alert Triggers
+#
+template:
+  - binary_sensor:
+      - name: p1_leak_detector_trigger
+        state: >
+          {{ states
+            | selectattr('attributes.leak_detector', 'eq', true)
+            | selectattr('state', 'eq', 'on')
+            | list
+            | length > 0 }}
+        attributes:
+          source_entity_id: "binary_sensor.p1_leak_detector_trigger" # self
+          devices: >
+            {{ states
+              | selectattr('attributes.leak_detector', 'eq', true)
+              | selectattr('state', 'eq', 'on')
+              | join(", ", "attributes.friendly_name") }}
+          devices_count: >
+            {{ this.attributes.devices.split(", ") | count }}
+          devices_first: >
+            {{ this.attributes.devices.split(", ") | first }}
+          message: >
+            {% if this.attributes.devices_count | int(0) == 0 %}Everything is dry
+            {% elif this.attributes.devices_count | int(0) == 1 %}{{ this.attributes.devices_first }} is wet
+            {%- else -%}{{ this.attributes.devices_first }} and {{ this.attributes.devices_count | int(0) - 1 }} others are wet
+            {%- endif -%}
+
+#
+# Alerts
+#
+alert:
+  p1_leak_detector:
+    name: Leak Detector Alarm
+    entity_id: binary_sensor.p1_leak_detector_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p1_critical
+    repeat:
+      - 30
+      - 60
+    title: 💧 Leak Detected
+    message: >
+      ACTIVE: "{{ state_attr('binary_sensor.p1_leak_detector_trigger', 'message') }}" for {{ relative_time(states.binary_sensor.p1_leak_detector_trigger.last_changed) }}
+      Devices: {{ state_attr('binary_sensor.p1_leak_detector_trigger', 'devices') }}
+    done_message: >
+      DONE: All dry as of {{ states.binary_sensor.p1_leak_detector_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p1_leak_detector
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-system/alerts"
+      actions:
+        - action: alert.p1_leak_detector.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"

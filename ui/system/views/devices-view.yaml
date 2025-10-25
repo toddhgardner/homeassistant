@@ -54,6 +54,8 @@ sections:
         card:
           type: entities
         filter:
+          exclude:
+            - entity_id: input_*.test_*
           include:
             - attributes:
                 package: "*"

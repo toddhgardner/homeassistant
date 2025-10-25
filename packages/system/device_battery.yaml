@@ -21,21 +21,62 @@ homeassistant:
       <<: *package
       friendly_name: Garage Freezer Monitor Battery
 
+    sensor.guest_bath_leak_battery:
+      <<: *package
+      friendly_name: Guest Bath Leak Battery
+
+    sensor.half_bath_leak_battery:
+      <<: *package
+      friendly_name: Half Bath Leak Battery
+
     sensor.kitchen_pantry_door_battery:
       <<: *package
       friendly_name: Kitchen Pantry Door Battery
+
+    sensor.kitchen_refrigerator_leak_battery:
+      <<: *package
+      friendly_name: Kitchen Refrigerator Leak Battery
 
     sensor.kitchen_sink_leak_battery:
       <<: *package
       friendly_name: Kitchen Sink Leak Battery
 
+    sensor.laundry_leak_battery:
+      <<: *package
+      friendly_name: Laundry Leak Battery
+
     sensor.mudroom_closet_door_battery:
       <<: *package
       friendly_name: Mudroom Closet Door Battery
 
+    sensor.primary_bath_toilet_leak_battery:
+      <<: *package
+      friendly_name: Primary Bath Toilet Leak
+
+    sensor.primary_bath_tub_leak_battery:
+      <<: *package
+      friendly_name: Primary Bath Tub Leak
+
+    sensor.suite_bath_leak_battery:
+      <<: *package
+      friendly_name: Suite Bath Leak
+
     sensor.utility_drain_leak_battery:
       <<: *package
       friendly_name: Utility Drain Leak Battery
+
+    input_number.test_battery:
+      <<: *package
+      friendly_name: Test Battery
+
+#
+# Test Sensor
+#
+input_number:
+  test_battery:
+    initial: 100
+    max: 100
+    min: 0
 
 #
 # Alert Triggers
@@ -46,7 +87,6 @@ template:
         state: >
           {% set ns = namespace(found=false) %}
           {% for entity in states
-            | selectattr('attributes.device_class', 'eq', 'battery')
             | selectattr('attributes.battery_monitor', 'eq', true) %}
             {% if entity.state not in ['unavailable', 'unknown', 'none']
               and entity.state | int(-1) <= 20 %}
@@ -56,22 +96,26 @@ template:
           {% endfor %}
           {{ ns.found }}
         attributes:
-          message: >
-            {{ this.attributes.device_count }} low batteries
-          source_entity_id: binary_sensor.p2_device_battery_trigger
-          device_count: >
-            {{ this.attributes.device_list | count }}
-          device_list: >
+          source_entity_id: "binary_sensor.p2_device_battery_trigger" # self
+          devices: >
             {% set ns = namespace(batteries=[]) %}
             {% for entity in states
-              | selectattr('attributes.device_class', 'eq', 'battery')
               | selectattr('attributes.battery_monitor', 'eq', true) %}
               {% if entity.state not in ['unavailable', 'unknown', 'none']
                 and entity.state | int(-1) <= 20 %}
-                {% set ns.batteries = ns.batteries + [device_name(entity.entity_id)] %}
+                {% set ns.batteries = ns.batteries + [entity] %}
               {% endif %}
             {% endfor %}
-            {{ ns.batteries }}
+            {{ ns.batteries | join(", ", "attributes.friendly_name") }}
+          devices_count: >
+            {{ this.attributes.devices.split(", ") | count }}
+          devices_first: >
+            {{ this.attributes.devices.split(", ") | first }}
+          message: >
+            {% if this.attributes.devices_count | int(0) == 0 %}Everything is powered
+            {% elif this.attributes.devices_count | int(0) == 1 %}{{ this.attributes.devices_first }} is low
+            {%- else -%}{{ this.attributes.devices_first }} and {{ this.attributes.devices_count | int(0) - 1 }} others are low
+            {%- endif -%}
 
 #
 # Alerts
@@ -90,7 +134,7 @@ alert:
     title: 🪫 Low Battery
     message: >
       ACTIVE: "{{ state_attr('binary_sensor.p2_device_battery_trigger', 'message') }}" for {{ relative_time(states.binary_sensor.p2_device_battery_trigger.last_changed) }}
-      Devices: {{ state_attr('binary_sensor.p2_device_battery_trigger', 'device_list') }}
+      Devices: {{ state_attr('binary_sensor.p2_device_battery_trigger', 'devices') }}
     done_message: >
       DONE: All batteries charged as of {{ states.binary_sensor.p2_device_battery_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
     data:

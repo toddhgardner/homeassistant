@@ -48,19 +48,17 @@ sections:
   #
   - type: grid
     cards:
-      - type: entities
-        title: Test Alerts
-        show_header_toggle: false
-        entities:
 
-          - entity: input_boolean.p1_test_alert
-            name: P1 Critical Alert Test
-            secondary_info: last-changed
-            icon: mdi:alert-box-outline
-
-          - entity: input_boolean.p2_test_alert
-            name: P2 Warning Alert Test
-            secondary_info: last-changed
-            icon: mdi:alert-outline
-
-
+      - type: custom:auto-entities
+        show_empty: true
+        filter:
+          include:
+            - entity_id: input_*.test_*
+              options:
+                secondary_info: last-changed
+                icon: mdi:alert-box-outline
+        card:
+          type: entities
+          title: Test Specific Alerts
+        sort:
+          method: entity_id

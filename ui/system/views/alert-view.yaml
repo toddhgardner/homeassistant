@@ -140,7 +140,7 @@ sections:
                 attributes:
                   - value: message
                     name: Alert
-                  - value: device_list
+                  - value: devices
                     name: Devices
         card:
           type: custom:multiple-logbook-card

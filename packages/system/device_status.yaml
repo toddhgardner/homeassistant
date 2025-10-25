@@ -4,6 +4,29 @@
 # Monitor the availability of devices critical to defined automations and alerts.
 ---
 #
+# Device Configuration
+#
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: system/device_status
+
+    input_select.test_status:
+      <<: *package
+      friendly_name: Test Status
+
+#
+# Test Sensor
+#
+input_select:
+  test_status:
+    options:
+      - on
+      - "unknown"
+    initial: on
+
+#
 # Alert Triggers
 #
 template:
@@ -19,23 +42,22 @@ template:
         delay_on:
           minutes: 5
         attributes:
-          message: >
-            {{ this.attributes.device_count }} devices offline
-          source_entity_id: binary_sensor.p2_device_status_trigger
-          device_count: >
+          source_entity_id: "binary_sensor.p2_device_status_trigger" # self
+          devices: >
             {{ states
               | selectattr('attributes.package', 'defined')
               | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
-              | list
-              | length }}
-          device_list: >
-            {% set devices = states
-              | selectattr('attributes.package', 'defined')
-              | selectattr('state', 'in', ['unavailable', 'unknown', 'none']) %}
-            {% for device in devices %}
-              {{ device.attributes.friendly_name | default(device.entity_id) }} ({{ device.attributes.package }})
-            {%- if not loop.last %}, {% endif %}
-            {% endfor %}
+              | join(", ", "attributes.friendly_name") }}
+          devices_count: >
+            {{ this.attributes.devices.split(", ") | count }}
+          devices_first: >
+            {{ this.attributes.devices.split(", ") | first }}
+          message: >
+            {% if this.attributes.devices_count | int(0) == 0 %}Everything is online
+            {% elif this.attributes.devices_count | int(0) == 1 %}{{ this.attributes.devices_first }} is offline
+            {%- else -%}{{ this.attributes.devices_first }} and {{ this.attributes.devices_count | int(0) - 1 }} others are offline
+            {%- endif -%}
+
 
 #
 # Alerts
