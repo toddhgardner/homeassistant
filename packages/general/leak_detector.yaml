@@ -68,7 +68,12 @@ input_boolean:
 # Alert Triggers
 #
 template:
-  - binary_sensor:
+  # Trigger to update periodically because the dynamic state selector is slow and relies on unknown
+  # external state changes for this to trigger.
+  - triggers:
+      - trigger: time_pattern
+        seconds: 10
+    binary_sensor:
       - name: p1_leak_detector_trigger
         state: >
           {{ states
@@ -89,8 +94,8 @@ template:
             {{ this.attributes.devices.split(", ") | first }}
           message: >
             {% if this.attributes.devices_count | int(0) == 0 %}Everything is dry
-            {% elif this.attributes.devices_count | int(0) == 1 %}{{ this.attributes.devices_first }} is wet
-            {%- else -%}{{ this.attributes.devices_first }} and {{ this.attributes.devices_count | int(0) - 1 }} others are wet
+            {% elif this.attributes.devices_count | int(0) == 1 %}{{ this.attributes.devices_first | default("Unknown") }} is wet
+            {%- else -%}{{ this.attributes.devices_first | default("Unknown") }} and {{ this.attributes.devices_count | int(0) - 1 }} others are wet
             {%- endif -%}
 
 #

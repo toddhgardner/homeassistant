@@ -82,7 +82,12 @@ input_number:
 # Alert Triggers
 #
 template:
-  - binary_sensor:
+  # Trigger to update periodically because the dynamic state selector is slow and relies on unknown
+  # external state changes for this to trigger.
+  - triggers:
+    - trigger: time_pattern
+      seconds: 10
+    binary_sensor:
       - name: p2_device_battery_trigger
         state: >
           {% set ns = namespace(found=false) %}
@@ -113,8 +118,8 @@ template:
             {{ this.attributes.devices.split(", ") | first }}
           message: >
             {% if this.attributes.devices_count | int(0) == 0 %}Everything is powered
-            {% elif this.attributes.devices_count | int(0) == 1 %}{{ this.attributes.devices_first }} is low
-            {%- else -%}{{ this.attributes.devices_first }} and {{ this.attributes.devices_count | int(0) - 1 }} others are low
+            {% elif this.attributes.devices_count | int(0) == 1 %}{{ this.attributes.devices_first | default("Unknown") }} is low
+            {%- else -%}{{ this.attributes.devices_first | default("Unknown") }} and {{ this.attributes.devices_count | int(0) - 1 }} others are low
             {%- endif -%}
 
 #
