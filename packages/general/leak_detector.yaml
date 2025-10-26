@@ -26,6 +26,10 @@ homeassistant:
       <<: *package
       friendly_name: Half Bath Leak
 
+    binary_sensor.kitchen_dishwasher_leak:
+      <<: *package
+      friendly_name: Kitchen Dishwasher Leak
+
     binary_sensor.kitchen_refrigerator_leak:
       <<: *package
       friendly_name: Kitchen Refrigerator Leak

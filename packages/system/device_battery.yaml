@@ -29,6 +29,10 @@ homeassistant:
       <<: *package
       friendly_name: Half Bath Leak Battery
 
+    sensor.kitchen_dishwasher_leak_battery:
+      <<: *package
+      friendly_name: Kitchen Dishwasher Leak Battery
+
     sensor.kitchen_pantry_door_battery:
       <<: *package
       friendly_name: Kitchen Pantry Door Battery

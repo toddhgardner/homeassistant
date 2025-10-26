@@ -132,6 +132,7 @@ sections:
               options:
                 hidden_state:
                   - "off"
+                  - "unknown"
                 state_map:
                   - value: "on"
                     label: ""
