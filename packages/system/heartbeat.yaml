@@ -1,0 +1,31 @@
+# Heartbeat
+# System
+#
+# Send heartbeat monitoring request to external service for alerting
+---
+
+#
+# Send Heartbeat request to status.toddhgardner.com
+#
+shell_command:
+  ping_status: "ping -c 1 status.toddhgardner.com | awk -F'time=| ms' '/time=/{print $2}'"
+  send_heartbeat: curl -s -o /dev/null https://status.toddhgardner.com/api/push/D1ILCN4biQHG4ZMVWS0FuHwGdu83KNAV\?status\={{status | urlencode}}\&msg\={{msg | urlencode}}\&ping\={{ping | urlencode}}
+
+#
+# Heartbeat automation to send status to the remote monitor
+#
+automation:
+  - id: heartbeat_auto_send
+    alias: Heartbeat Auto Send
+    description: "Send system heartbeat to status.toddhgardner.com."
+    triggers:
+      - trigger: time_pattern
+        minutes: "/1"
+    actions:
+      - action: shell_command.ping_status
+        response_variable: status_ping_time
+      - action: shell_command.send_heartbeat
+        data:
+          status: "up" # this is the key value for the uptime monitor to work
+          msg: "uptime: {{ relative_time(as_datetime(states('sensor.ha_uptime'))) }}"
+          ping: "{{ status_ping_time['stdout'] }}"
