@@ -42,26 +42,6 @@
       - dining_room
       - flex_room
   mode: single
-- id: '1736729071588'
-  alias: Turn off heat mats after 4h
-  description: ''
-  triggers:
-  - type: turned_on
-    device_id: 41d526899fcd5a046a93f31ff8e68c95
-    entity_id: a19db08a70cc0f17f9cb1498921b491f
-    domain: switch
-    trigger: device
-    for:
-      hours: 4
-      minutes: 0
-      seconds: 0
-  conditions: []
-  actions:
-  - type: turn_off
-    device_id: 41d526899fcd5a046a93f31ff8e68c95
-    entity_id: a19db08a70cc0f17f9cb1498921b491f
-    domain: switch
-  mode: single
 - id: '1740363545295'
   alias: Night Lockup
   description: ''

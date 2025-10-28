@@ -1,0 +1,79 @@
+# Back Patio
+# Area
+---
+
+#
+# Device Configuration
+#
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: area/back_patio
+
+    switch.back_patio_switch:
+      <<: *package
+      friendly_name: Back Patio Switch
+
+    switch.back_patio_outlet_1:
+      <<: *package
+      friendly_name: Back Patio Heat Mats
+      icon: mdi:heat-wave
+
+    switch.back_patio_outlet_2:
+      <<: *package
+      friendly_name: Back Patio String Lights
+      icon: mdi:string-lights
+
+automation:
+
+  #
+  # Sync string lights with switch
+  #
+  - id: back_patio_auto_lights
+    alias: Back Patio Auto Lights
+    description: "Toggle the string lighting with the main switch."
+    triggers:
+      - trigger: state
+        entity_id: switch.back_patio_switch
+        to: "off"
+        id: back_patio_switch_off
+      - trigger: state
+        entity_id: switch.back_patio_switch
+        to: "on"
+        id: back_patio_switch_on
+    actions:
+      - choose:
+          - conditions:
+              - condition: trigger
+                id: back_patio_switch_off
+            sequence:
+              - action: switch.turn_off
+                target:
+                  entity_id: switch.back_patio_outlet_2
+          - conditions:
+              - condition: trigger
+                id: back_patio_switch_on
+            sequence:
+              - action: switch.turn_on
+                target:
+                  entity_id: switch.back_patio_outlet_2
+    mode: single
+
+  #
+  # Auto turn off heat mats
+  #
+  - id: back_patio_auto_heat_mats_off
+    alias: Back Patio Auto Heat Mats Off
+    description: "Turn off heat mats after 3 hours."
+    triggers:
+      - trigger: state
+        entity_id: switch.back_patio_outlet_1
+        to: "on"
+        for:
+          hours: 3
+    actions:
+      - action: switch.turn_off
+        target:
+          entity_id: switch.back_patio_outlet_1
+    mode: single
