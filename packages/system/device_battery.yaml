@@ -11,7 +11,12 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: system/device_battery
-        battery_monitor: True
+
+    alert.p2_device_battery:
+      <<: *package
+
+    binary_sensor.p2_device_battery_trigger:
+      <<: *package
 
     sensor.basement_bath_leak_battery:
       <<: *package
@@ -69,6 +74,10 @@ homeassistant:
       <<: *package
       friendly_name: Utility Drain Leak Battery
 
+    sensor.test_battery:
+      <<: *package
+      friendly_name: Test Battery
+
     input_number.test_battery:
       <<: *package
       friendly_name: Test Battery
@@ -86,44 +95,36 @@ input_number:
 # Alert Triggers
 #
 template:
-  # Trigger to update periodically because the dynamic state selector is slow and relies on unknown
-  # external state changes for this to trigger.
-  - triggers:
-    - trigger: time_pattern
-      seconds: 10
-    binary_sensor:
+
+  - sensor:
+      - name: test_battery
+        state: "{{ states('input_number.test_battery') }}"
+        device_class: battery
+
+  - binary_sensor:
       - name: p2_device_battery_trigger
-        state: >
-          {% set ns = namespace(found=false) %}
-          {% for entity in states
-            | selectattr('attributes.battery_monitor', 'eq', true) %}
-            {% if entity.state not in ['unavailable', 'unknown', 'none']
-              and entity.state | int(-1) <= 20 %}
-              {% set ns.found = true %}
-              {% break %}
-            {% endif %}
-          {% endfor %}
-          {{ ns.found }}
+        state: "{{ this.attributes.devices | count > 0 }}"
         attributes:
           source_entity_id: "binary_sensor.p2_device_battery_trigger" # self
           devices: >
             {% set ns = namespace(batteries=[]) %}
-            {% for entity in states
-              | selectattr('attributes.battery_monitor', 'eq', true) %}
-              {% if entity.state not in ['unavailable', 'unknown', 'none']
-                and entity.state | int(-1) <= 20 %}
+            {% for entity in states.sensor
+              | selectattr('attributes.package', 'eq', 'system/device_battery')
+              | selectattr('attributes.device_class', 'eq', 'battery') %}
+              {% if entity.state | int(-1) <= 20 %}
                 {% set ns.batteries = ns.batteries + [entity] %}
               {% endif %}
             {% endfor %}
-            {{ ns.batteries | join(", ", "attributes.friendly_name") }}
-          devices_count: >
-            {{ this.attributes.devices.split(", ") | count }}
-          devices_first: >
-            {{ this.attributes.devices.split(", ") | first }}
+            {{ ns.batteries
+              | map(attribute="attributes.friendly_name", default="Unknown")
+              | list }}
+          title: 🪫 Device battery low
           message: >
-            {% if this.attributes.devices_count | int(0) == 0 %}Everything is powered
-            {% elif this.attributes.devices_count | int(0) == 1 %}{{ this.attributes.devices_first | default("Unknown") }} is low
-            {%- else -%}{{ this.attributes.devices_first | default("Unknown") }} and {{ this.attributes.devices_count | int(0) - 1 }} others are low
+            {% set devices_count = this.attributes.devices | count %}
+            {% set devices_first = this.attributes.devices | first %}
+            {% if devices_count == 0 %}All sensors powered
+            {% elif devices_count == 1 %}{{ devices_first }} has low battery
+            {%- else -%}{{ devices_first }} and {{ devices_count - 1 }} others have low battery
             {%- endif -%}
 
 #
@@ -140,12 +141,10 @@ alert:
     repeat:
       - 120
       - 240
-    title: 🪫 Low Battery
-    message: >
-      ACTIVE: "{{ state_attr('binary_sensor.p2_device_battery_trigger', 'message') }}" for {{ relative_time(states.binary_sensor.p2_device_battery_trigger.last_changed) }}
-      Devices: {{ state_attr('binary_sensor.p2_device_battery_trigger', 'devices') }}
+    title: "{{ state_attr('binary_sensor.p2_device_battery_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p2_device_battery_trigger', 'message') }}"
     done_message: >
-      DONE: All batteries charged as of {{ states.binary_sensor.p2_device_battery_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ states.binary_sensor.p2_device_status_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_device_battery
       subtitle: Lavender Circle

@@ -11,52 +11,70 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: general/leak_detector
-        show_as: moisture
-        leak_detector: True
 
+      leak: &leak
+        package: general/leak_detector
+        show_as: moisture
+
+    #
+    # Leak Sensors
+    #
     binary_sensor.basement_bath_leak:
-      <<: *package
+      <<: *leak
       friendly_name: Basement Bath Leak
 
     binary_sensor.guest_bath_leak:
-      <<: *package
+      <<: *leak
       friendly_name: Guest Bath Leak
 
     binary_sensor.half_bath_leak:
-      <<: *package
+      <<: *leak
       friendly_name: Half Bath Leak
 
     binary_sensor.kitchen_dishwasher_leak:
-      <<: *package
+      <<: *leak
       friendly_name: Kitchen Dishwasher Leak
 
     binary_sensor.kitchen_refrigerator_leak:
-      <<: *package
+      <<: *leak
       friendly_name: Kitchen Refrigerator Leak
 
     binary_sensor.kitchen_sink_leak:
-      <<: *package
+      <<: *leak
       friendly_name: Kitchen Sink Leak
 
     binary_sensor.laundry_leak:
-      <<: *package
+      <<: *leak
       friendly_name: Laundry Leak
 
     binary_sensor.primary_bath_toilet_leak:
-      <<: *package
+      <<: *leak
       friendly_name: Primary Bath Toilet Leak
 
     binary_sensor.primary_bath_tub_leak:
-      <<: *package
+      <<: *leak
       friendly_name: Primary Bath Tub Leak
 
     binary_sensor.suite_bath_leak:
-      <<: *package
+      <<: *leak
       friendly_name: Suite Bath Leak
 
     binary_sensor.utility_drain_leak:
-      <<: *package
+      <<: *leak
       friendly_name: Utility Drain Leak
+
+    binary_sensor.test_leak:
+      <<: *leak
+      friendly_name: Test Leak
+
+    #
+    # Other package items
+    #
+    alert.p1_leak_detector:
+      <<: *package
+
+    binary_sensor.p1_leak_detector_trigger:
+      <<: *package
 
     input_boolean.test_leak:
       <<: *package
@@ -72,34 +90,31 @@ input_boolean:
 # Alert Triggers
 #
 template:
-  # Trigger to update periodically because the dynamic state selector is slow and relies on unknown
-  # external state changes for this to trigger.
-  - triggers:
-      - trigger: time_pattern
-        seconds: 10
-    binary_sensor:
+
+  - binary_sensor:
+      - name: test_leak
+        state: "{{ states('input_boolean.test_leak') }}"
+        device_class: moisture
+
+  - binary_sensor:
       - name: p1_leak_detector_trigger
-        state: >
-          {{ states
-            | selectattr('attributes.leak_detector', 'eq', true)
-            | selectattr('state', 'eq', 'on')
-            | list
-            | length > 0 }}
+        state: "{{ this.attributes.devices | count > 0 }}"
         attributes:
           source_entity_id: "binary_sensor.p1_leak_detector_trigger" # self
           devices: >
-            {{ states
-              | selectattr('attributes.leak_detector', 'eq', true)
+            {{ states.binary_sensor
+              | selectattr('attributes.package', 'eq', 'general/leak_detector')
+              | selectattr('attributes.device_class', 'eq', 'moisture')
               | selectattr('state', 'eq', 'on')
-              | join(", ", "attributes.friendly_name") }}
-          devices_count: >
-            {{ this.attributes.devices.split(", ") | count }}
-          devices_first: >
-            {{ this.attributes.devices.split(", ") | first }}
+              | map(attribute="attributes.friendly_name", default="Unknown")
+              | list }}
+          title: 💧 Leak Detected
           message: >
-            {% if this.attributes.devices_count | int(0) == 0 %}Everything is dry
-            {% elif this.attributes.devices_count | int(0) == 1 %}{{ this.attributes.devices_first | default("Unknown") }} is wet
-            {%- else -%}{{ this.attributes.devices_first | default("Unknown") }} and {{ this.attributes.devices_count | int(0) - 1 }} others are wet
+            {% set devices_count = this.attributes.devices | count %}
+            {% set devices_first = this.attributes.devices | first %}
+            {% if devices_count == 0 %}All detectors dry
+            {% elif devices_count == 1 %}{{ devices_first }} is wet
+            {%- else -%}{{ devices_first }} and {{ devices_count - 1 }} others are wet
             {%- endif -%}
 
 #
@@ -116,12 +131,10 @@ alert:
     repeat:
       - 30
       - 60
-    title: 💧 Leak Detected
-    message: >
-      ACTIVE: "{{ state_attr('binary_sensor.p1_leak_detector_trigger', 'message') }}" for {{ relative_time(states.binary_sensor.p1_leak_detector_trigger.last_changed) }}
-      Devices: {{ state_attr('binary_sensor.p1_leak_detector_trigger', 'devices') }}
+    title: "{{ state_attr('binary_sensor.p1_leak_detector_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p1_leak_detector_trigger', 'message') }}"
     done_message: >
-      DONE: All dry as of {{ states.binary_sensor.p1_leak_detector_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ states.binary_sensor.p1_leak_detector_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p1_leak_detector
       subtitle: Lavender Circle

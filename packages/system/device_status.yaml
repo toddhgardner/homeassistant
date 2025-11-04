@@ -12,6 +12,12 @@ homeassistant:
       pkg: &package
         package: system/device_status
 
+    alert.p2_device_status:
+      <<: *package
+
+    binary_sensor.p2_device_status_trigger:
+      <<: *package
+
     input_select.test_status:
       <<: *package
       friendly_name: Test Status
@@ -30,19 +36,10 @@ input_select:
 # Alert Triggers
 #
 template:
-  # Trigger to update periodically because the dynamic state selector is slow and relies on unknown
-  # external state changes for this to trigger.
-  - triggers:
-    - trigger: time_pattern
-      seconds: 10
-    binary_sensor:
+
+  - binary_sensor:
       - name: p2_device_status_trigger
-        state: >
-          {{ states
-            | selectattr('attributes.package', 'defined')
-            | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
-            | list
-            | length > 0 }}
+        state: "{{ this.attributes.devices | count > 0 }}"
         delay_on:
           minutes: 5
         attributes:
@@ -51,17 +48,16 @@ template:
             {{ states
               | selectattr('attributes.package', 'defined')
               | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
-              | join(", ", "attributes.friendly_name") }}
-          devices_count: >
-            {{ this.attributes.devices.split(", ") | count }}
-          devices_first: >
-            {{ this.attributes.devices.split(", ") | first }}
+              | map(attribute="attributes.friendly_name", default="Unknown")
+              | list }}
+          title: 🛜 Device offline
           message: >
-            {% if this.attributes.devices_count | int(0) == 0 %}Everything is online
-            {% elif this.attributes.devices_count | int(0) == 1 %}{{ this.attributes.devices_first | default("Unknown") }} is offline
-            {%- else -%}{{ this.attributes.devices_first | default("Unknown") }} and {{ this.attributes.devices_count | int(0) - 1 }} others are offline
+            {% set devices_count = this.attributes.devices | count %}
+            {% set devices_first = this.attributes.devices | first %}
+            {% if devices_count == 0 %}All devices online
+            {% elif devices_count == 1 %}{{ devices_first }} is offline
+            {%- else -%}{{ devices_first }} and {{ devices_count - 1 }} others are offline
             {%- endif -%}
-
 
 #
 # Alerts
@@ -78,12 +74,10 @@ alert:
     repeat:
       - 120
       - 240
-    title: ⚠️ Device Offline
-    message: >
-      ACTIVE: "{{ state_attr('binary_sensor.p2_device_status_trigger', 'message') }}" for {{ relative_time(states.binary_sensor.p2_device_status_trigger.last_changed) }}
-      Devices: {{ state_attr('binary_sensor.p2_device_status_trigger', 'device_list') }}
+    title: "{{ state_attr('binary_sensor.p2_device_status_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p2_device_status_trigger', 'message') }}"
     done_message: >
-      DONE: All essential devices are back online as of {{ states.binary_sensor.p2_device_status_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ states.binary_sensor.p2_device_status_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_device_status
       subtitle: Lavender Circle

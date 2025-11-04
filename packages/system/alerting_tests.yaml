@@ -1,12 +1,43 @@
-################################################################################
 # Alerting Tests
-# Test alerts for validating the alerting system at each severity level.
-################################################################################
+# System
+#
+# Test the alerting setup
 ---
+
+#
+# Device Configuration
+#
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: system/alert_test
+
+    alert.p1_test_alert:
+      <<: *package
+
+    alert.p2_test_alert:
+      <<: *package
+
+    binary_sensor.p1_test_alert_trigger:
+      <<: *package
+
+    binary_sensor.p2_test_alert_trigger:
+      <<: *package
+
+    input_boolean.p1_test_alert:
+      <<: *package
+      friendly_name: Test P1 Alerts
+
+    input_boolean.p2_test_alert:
+      <<: *package
+      friendly_name: Test P2 Alerts
+
+#
+# Test Alert Input
+#
 input_boolean:
-  ##############################################################################
-  # Test Alert Switches
-  ##############################################################################
+
   p1_test_alert:
     name: "P1 Test Alert"
     icon: mdi:alert-box-outline
@@ -15,11 +46,11 @@ input_boolean:
     name: "P2 Test Alert"
     icon: mdi:alert-outline
 
+#
+# Alert Triggers
+#
 template:
-  ##############################################################################
-  # Test Alert Triggers
-  # For testing, this is really simple. Just look if the switch got flipped on.
-  ##############################################################################
+
   - binary_sensor:
       - name: p1_test_alert_trigger
         state: >
@@ -27,7 +58,11 @@ template:
         availability: on
         attributes:
           source_entity_id: "input_boolean.p1_test_alert"
-          message: "p1 test on"
+          title: 🧪 P1 Test Active
+          message: >
+            {% if this.state %}P1 Test alert is active
+            {%- else -%}P1 Test recovered
+            {%- endif -%}
 
   - binary_sensor:
       - name: p2_test_alert_trigger
@@ -36,12 +71,16 @@ template:
         availability: on
         attributes:
           source_entity_id: "input_boolean.p2_test_alert"
-          message: "p2 test on"
+          title: 🧪 P2 Test Active
+          message: >
+            {% if this.state %}P2 Test alert is active
+            {%- else -%}P2 Test recovered
+            {%- endif -%}
 
+#
+# Alerts
+#
 alert:
-  ##############################################################################
-  # Test Alerts
-  ##############################################################################
   p1_test_alert:
     name: P1 Test Alert
     entity_id: binary_sensor.p1_test_alert_trigger
@@ -50,11 +89,10 @@ alert:
     skip_first: false
     notifiers: p1_critical
     repeat: 1 # for testing
-    title: 🚨 P1 Test Alert
-    message: >
-      ACTIVE: "{{ state_attr("binary_sensor.p1_test_alert_trigger", "message") }}" for {{ relative_time(states.binary_sensor.p1_test_alert_trigger.last_changed) }}
+    title: "{{ state_attr('binary_sensor.p1_test_alert_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p1_test_alert_trigger', 'message') }}"
     done_message: >
-      DONE: "{{ states(state_attr('binary_sensor.p1_test_alert_trigger', 'source_entity_id'), rounded=True, with_unit=True) }}" on {{ states.binary_sensor.p1_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ states.binary_sensor.p1_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p1_test_alert
       subtitle: Lavender Circle
@@ -75,11 +113,10 @@ alert:
     skip_first: false
     notifiers: p2_warning
     repeat: 1 # for testing
-    title: ⚠️ P2 Test Alert
-    message: >
-      ACTIVE: "{{ state_attr("binary_sensor.p2_test_alert_trigger", "message") }}" for {{ relative_time(states.binary_sensor.p2_test_alert_trigger.last_changed) }}
+    title: "{{ state_attr('binary_sensor.p2_test_alert_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p2_test_alert_trigger', 'message') }}"
     done_message: >
-      DONE: "{{ states(state_attr('binary_sensor.p2_test_alert_trigger', 'source_entity_id'), rounded=True, with_unit=True) }}" on {{ states.binary_sensor.p2_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ states.binary_sensor.p2_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_test_alert
       subtitle: Lavender Circle
