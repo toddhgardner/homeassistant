@@ -1,0 +1,88 @@
+# System Monitor
+# System
+#
+# Monitor the health of the Home Assistant system
+---
+
+#
+# Device Configuration
+#
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: system/system_monitor
+
+    alert.p2_system_monitor:
+      <<: *package
+
+    binary_sensor.p2_system_monitor_trigger:
+      <<: *package
+
+    sensor.system_monitor_disk_usage:
+      <<: *package
+      friendly_name: System Disk Usage
+
+    sensor.system_monitor_memory_usage:
+      <<: *package
+      friendly_name: System Memory Usage
+
+    sensor.system_monitor_processor_temperature:
+      <<: *package
+      friendly_name: System Processor Temp
+
+    sensor.system_monitor_processor_use:
+      <<: *package
+      friendly_name: System Processor Usage
+
+#
+# Alert Triggers
+#
+template:
+  - binary_sensor:
+      - name: p2_system_monitor_trigger
+        state: "{{ this.attributes.message != 'System okay' }}"
+        attributes:
+          source_entity_id: >
+            {% if states("sensor.system_monitor_disk_usage") | float(0) > 70 %}sensor.system_monitor_disk_usage
+            {% elif states("sensor.system_monitor_memory_usage") | float(0) > 70 %}sensor.system_monitor_memory_usage
+            {% elif states("sensor.system_monitor_processor_use") | float(0) > 70 %}sensor.system_monitor_processor_use
+            {% elif states("sensor.system_monitor_processor_temperature") | float(0) > 200 %}sensor.system_monitor_processor_temperature
+            {%- else -%}null
+            {%- endif -%}
+          title: 🖥️ System problem
+          message: >
+            {% if states("sensor.system_monitor_disk_usage") | float(0) > 70 %}System running out of disk ({{ states("sensor.system_monitor_disk_usage") }})
+            {% elif states("sensor.system_monitor_memory_usage") | float(0) > 70 %}System running out of memory ({{ states("sensor.system_monitor_memory_usage") }})
+            {% elif states("sensor.system_monitor_processor_use") | float(0) > 70 %}System running out of processor ({{ states("sensor.system_monitor_processor_use") }})
+            {% elif states("sensor.system_monitor_processor_temperature") | float(0) > 200 %}System running too hot ({{ states("sensor.system_monitor_processor_temperature") }})
+            {%- else -%}System okay
+            {%- endif -%}
+
+#
+# Alerts
+#
+alert:
+  p2_system_monitor:
+    name: System Monitor Warning
+    entity_id: binary_sensor.p2_system_monitor_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_warning
+    repeat:
+      - 120
+      - 240
+    title: "{{ state_attr('binary_sensor.p2_system_monitor_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p2_system_monitor_trigger', 'message') }}"
+    done_message: >
+      Recovered at {{ states.binary_sensor.p2_device_status_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_system_monitor
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-system/alerts"
+      actions:
+        - action: alert.p2_system_monitor.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"

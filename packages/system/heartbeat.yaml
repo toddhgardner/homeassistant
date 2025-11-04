@@ -5,11 +5,59 @@
 ---
 
 #
-# Send Heartbeat request to status.toddhgardner.com
+# Device Configuration
+#
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: system/heartbeat
+
+    alert.p2_heartbeat:
+      <<: *package
+
+    automation.heartbeat_auto_send:
+      <<: *package
+
+    binary_sensor.p2_heartbeat_trigger:
+      <<: *package
+
+    input_datetime.last_successful_heartbeat:
+      <<: *package
+
+    rest_command.send_heartbeat:
+      <<: *package
+
+    sensor.ha_uptime:
+      <<: *package
+      friendly_name: System Uptime
+
+    shell_command.ping_status:
+      <<: *package
+
+#
+# Get the ping time from status.toddhgardner.com
 #
 shell_command:
   ping_status: "ping -c 1 status.toddhgardner.com | awk -F'time=| ms' '/time=/{print $2}'"
-  send_heartbeat: curl -s -o /dev/null https://status.toddhgardner.com/api/push/D1ILCN4biQHG4ZMVWS0FuHwGdu83KNAV\?status\={{status | urlencode}}\&msg\={{msg | urlencode}}\&ping\={{ping | urlencode}}
+
+#
+# Send Heartbeat REST request to status.toddhgardner.com
+#
+rest_command:
+  send_heartbeat:
+    url: https://status.toddhgardner.com/api/push/mX7UpqFKLYrIfKCma8uYaYMLw1eMqwC0?status={{status | urlencode}}&msg={{msg | urlencode}}&ping={{ping | urlencode}}
+    method: GET
+    timeout: 10
+
+#
+# Custom sensor to store the last successful heartbeat time
+#
+input_datetime:
+  last_successful_heartbeat:
+    name: Last Successful Heartbeat
+    has_date: true
+    has_time: true
 
 #
 # Heartbeat automation to send status to the remote monitor
@@ -24,8 +72,63 @@ automation:
     actions:
       - action: shell_command.ping_status
         response_variable: status_ping_time
-      - action: shell_command.send_heartbeat
+      - action: rest_command.send_heartbeat
         data:
-          status: "up" # this is the key value for the uptime monitor to work
+          status: "up"
           msg: "uptime: {{ relative_time(as_datetime(states('sensor.ha_uptime'))) }}"
           ping: "{{ status_ping_time['stdout'] }}"
+        response_variable: heartbeat_result
+      - if:
+          - condition: template
+            value_template: "{{ heartbeat_result['status'] == 200 }}"
+        then:
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: input_datetime.last_successful_heartbeat
+            data:
+              timestamp: "{{ now().timestamp() }}"
+
+#
+# Alert Trigger
+#
+template:
+
+  - binary_sensor:
+      - name: p2_heartbeat_trigger
+        state: >
+          {{ now().timestamp() - state_attr('input_datetime.last_successful_heartbeat', 'timestamp') > 300 }}
+        attributes:
+          source_entity_id: "input_datetime.last_successful_heartbeat"
+          title: 💔 No heartbeat
+          message: >
+            {% if this.state %}No heartbeat since {{ as_datetime(state_attr('input_datetime.last_successful_heartbeat', 'timestamp')).strftime('%a %b %-d, %-I:%M %p') }}
+            {%- else -%}Heartbeat recovered
+            {%- endif -%}
+
+#
+# Alerts
+#
+alert:
+  p2_heartbeat:
+    name: Heartbeat Warning
+    entity_id: binary_sensor.p2_heartbeat_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_warning
+    repeat:
+      - 120
+      - 240
+    title: "{{ state_attr('binary_sensor.p2_heartbeat_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p2_heartbeat_trigger', 'message') }}"
+    done_message: >
+      Recovered at {{ states.binary_sensor.p2_device_status_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_heartbeat
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-system/alerts"
+      actions:
+        - action: alert.p2_heartbeat.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"
