@@ -3,20 +3,71 @@
 #
 # Core alerting and notification functionality.
 ---
+
+#
+# Device Configuration
+#
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: system/alerting
+
+    automation.alert_action_handler:
+      <<: *package
+
+    automation.alert_daily_unmute:
+      <<: *package
+
+    notify.email_todd:
+      <<: *package
+
+    notify.p1_critical:
+      <<: *package
+
+    notify.p2_warning:
+      <<: *package
+
+    sensor.alert_p1_active_count:
+      <<: *package
+
+    sensor.alert_p2_active_count:
+      <<: *package
+
 #
 # Notification Levels
 #
 notify:
 
+  - name: "email_todd"
+    platform: rest
+    resource: https://api.smtp2go.com/v3/email/send
+    method: "POST_JSON"
+    headers: {
+      X-Smtp2go-Api-Key: !secret smtp2go_api_key,
+      Content-Type: "application/json",
+      accept: "application/json"
+    }
+    message_param_name: "text_body"
+    title_param_name: "subject"
+    data: {
+      sender: !secret smtp2go_from_email,
+      to: [
+        !secret todds_email
+      ]
+    }
+
   - name: p1_critical
     platform: group
     services:
       - service: mobile_app_todds_iphone
+      - service: email_todd
 
   - name: p2_warning
     platform: group
     services:
       - service: mobile_app_todds_iphone
+      - service: email_todd
 
 #
 # Alert Status Sensors
@@ -24,7 +75,7 @@ notify:
 template:
   - sensor:
 
-      - name: "Alert P1 Active Count"
+      - name: alert_p1_active_count
         icon: mdi:alert-box-outline
         state: >
           {{ states.alert
@@ -32,7 +83,7 @@ template:
             | selectattr('state', 'ne', 'idle')
             | list | length }}
 
-      - name: "Alert P2 Active Count"
+      - name: alert_p2_active_count
         icon: mdi:alert-outline
         state: >
           {{ states.alert
