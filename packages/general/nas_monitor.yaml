@@ -1,0 +1,106 @@
+# NAS Monitor
+# General
+#
+# Monitor the health of the NAS
+---
+
+#
+# Device Configuration
+#
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: general/nas_monitor
+
+    alert.p2_nas_monitor:
+      <<: *package
+
+    binary_sensor.p2_nas_monitor_trigger:
+      <<: *package
+
+    sensor.nas_cpu_utilization_total:
+      <<: *package
+      friendly_name: NAS CPU Usage
+
+    sensor.nas_memory_usage_real:
+      <<: *package
+      friendly_name: NAS Memory Usage
+
+    sensor.nas_temperature:
+      <<: *package
+      friendly_name: NAS Temp
+
+    sensor.nas_volume_1_volume_used:
+      <<: *package
+      friendly_name: NAS Vol1 Usage
+
+    sensor.nas_volume_1_average_disk_temp:
+      <<: *package
+      friendly_name: NAS Vol1 Temp
+
+    sensor.nas_volume_2_volume_used:
+      <<: *package
+      friendly_name: NAS Vol2 Usage
+
+    sensor.nas_volume_2_average_disk_temp:
+      <<: *package
+      friendly_name: NAS Vol2 Temp
+
+#
+# Alert Triggers
+#
+template:
+  - binary_sensor:
+      - name: p2_nas_monitor_trigger
+        state: "{{ this.attributes.message != 'System okay' }}"
+        attributes:
+          source_entity_id: >
+            {% if states("sensor.nas_cpu_utilization_total") | float(0) > 80 %}sensor.nas_cpu_utilization_total
+            {% elif states("sensor.nas_memory_usage_real") | float(0) > 80 %}sensor.nas_memory_usage_real
+            {% elif states("sensor.nas_temperature") | float(0) > 150 %}sensor.nas_temperature
+            {% elif states("sensor.nas_volume_1_volume_used") | float(0) > 80 %}sensor.nas_volume_1_volume_used
+            {% elif states("sensor.nas_volume_1_average_disk_temp") | float(0) > 150 %}sensor.nas_volume_1_average_disk_temp
+            {% elif states("sensor.nas_volume_2_volume_used") | float(0) > 80 %}sensor.nas_volume_2_volume_used
+            {% elif states("sensor.nas_volume_2_average_disk_temp") | float(0) > 150 %}sensor.nas_volume_2_average_disk_temp
+            {%- else -%}null
+            {%- endif -%}
+          title: 💾 NAS problem
+          message: >
+            {% if states("sensor.nas_cpu_utilization_total") | float(0) > 80 %}NAS running out of processor ({{ states(sensor.nas_cpu_utilization_total) }})
+            {% elif states("sensor.nas_memory_usage_real") | float(0) > 80 %}NAS running out of memory ({{ states(sensor.nas_memory_usage_real) }})
+            {% elif states("sensor.nas_temperature") | float(0) > 150 %}NAS running too hot ({{ states(sensor.nas_temperature) }})
+            {% elif states("sensor.nas_volume_1_volume_used") | float(0) > 80 %}NAS Vol1 running out of disk ({{ states(sensor.nas_volume_1_volume_used) }})
+            {% elif states("sensor.nas_volume_1_average_disk_temp") | float(0) > 150 %}NAS Vol1 running too hot ({{ states(sensor.nas_volume_1_average_disk_temp) }})
+            {% elif states("sensor.nas_volume_2_volume_used") | float(0) > 80 %}NAS Vol2 running out of disk ({{ states(sensor.nas_volume_2_volume_used) }})
+            {% elif states("sensor.nas_volume_2_average_disk_temp") | float(0) > 150 %}NAS Vol2 running too hot ({{ states(sensor.nas_volume_2_average_disk_temp) }})
+            {%- else -%}System okay
+            {%- endif -%}
+
+#
+# Alerts
+#
+alert:
+  p2_nas_monitor:
+    name: NAS Monitor Warning
+    entity_id: binary_sensor.p2_nas_monitor_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_warning
+    repeat:
+      - 120
+      - 240
+    title: "{{ state_attr('binary_sensor.p2_nas_monitor_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p2_nas_monitor_trigger', 'message') }}"
+    done_message: >
+      Recovered at {{ states.binary_sensor.p2_nas_monitor_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_nas_monitor
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-system/alerts"
+      actions:
+        - action: alert.p2_nas_monitor.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"
