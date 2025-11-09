@@ -105,6 +105,7 @@ template:
             {{ states.binary_sensor
               | selectattr('attributes.package', 'eq', 'general/leak_detector')
               | selectattr('attributes.device_class', 'eq', 'moisture')
+              | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
               | selectattr('state', 'eq', 'on')
               | map(attribute="attributes.friendly_name", default="Unknown")
               | list }}
