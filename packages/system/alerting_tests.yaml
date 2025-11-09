@@ -92,7 +92,7 @@ alert:
     title: "{{ state_attr('binary_sensor.p1_test_alert_trigger', 'title') }}"
     message: "{{ state_attr('binary_sensor.p1_test_alert_trigger', 'message') }}"
     done_message: >
-      Recovered at {{ states.binary_sensor.p1_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p1_test_alert_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p1_test_alert
       subtitle: Lavender Circle
@@ -116,7 +116,7 @@ alert:
     title: "{{ state_attr('binary_sensor.p2_test_alert_trigger', 'title') }}"
     message: "{{ state_attr('binary_sensor.p2_test_alert_trigger', 'message') }}"
     done_message: >
-      Recovered at {{ states.binary_sensor.p2_test_alert_trigger.last_changed.strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p2_test_alert_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_test_alert
       subtitle: Lavender Circle
