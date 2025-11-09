@@ -41,21 +41,25 @@ homeassistant:
 template:
   - binary_sensor:
       - name: p2_system_monitor_trigger
-        state: "{{ this.attributes.message != 'System okay' }}"
+        state: >
+          {{ states("sensor.system_monitor_disk_usage") | float(0) > 80 or
+             states("sensor.system_monitor_memory_usage") | float(0) > 80 or
+             states("sensor.system_monitor_processor_use") | float(0) > 80 or
+             states("sensor.system_monitor_processor_temperature") | float(0) > 150 }}
         attributes:
           source_entity_id: >
-            {% if states("sensor.system_monitor_disk_usage") | float(0) > 70 %}sensor.system_monitor_disk_usage
-            {% elif states("sensor.system_monitor_memory_usage") | float(0) > 70 %}sensor.system_monitor_memory_usage
-            {% elif states("sensor.system_monitor_processor_use") | float(0) > 70 %}sensor.system_monitor_processor_use
-            {% elif states("sensor.system_monitor_processor_temperature") | float(0) > 200 %}sensor.system_monitor_processor_temperature
+            {% if states("sensor.system_monitor_disk_usage") | float(0) > 80 %}sensor.system_monitor_disk_usage
+            {% elif states("sensor.system_monitor_memory_usage") | float(0) > 80 %}sensor.system_monitor_memory_usage
+            {% elif states("sensor.system_monitor_processor_use") | float(0) > 80 %}sensor.system_monitor_processor_use
+            {% elif states("sensor.system_monitor_processor_temperature") | float(0) > 150 %}sensor.system_monitor_processor_temperature
             {%- else -%}null
             {%- endif -%}
           title: 🖥️ System problem
           message: >
-            {% if states("sensor.system_monitor_disk_usage") | float(0) > 70 %}System running out of disk ({{ states("sensor.system_monitor_disk_usage") }})
-            {% elif states("sensor.system_monitor_memory_usage") | float(0) > 70 %}System running out of memory ({{ states("sensor.system_monitor_memory_usage") }})
-            {% elif states("sensor.system_monitor_processor_use") | float(0) > 70 %}System running out of processor ({{ states("sensor.system_monitor_processor_use") }})
-            {% elif states("sensor.system_monitor_processor_temperature") | float(0) > 200 %}System running too hot ({{ states("sensor.system_monitor_processor_temperature") }})
+            {% if states("sensor.system_monitor_disk_usage") | float(0) > 80 %}System running out of disk ({{ states("sensor.system_monitor_disk_usage") }})
+            {% elif states("sensor.system_monitor_memory_usage") | float(0) > 80 %}System running out of memory ({{ states("sensor.system_monitor_memory_usage") }})
+            {% elif states("sensor.system_monitor_processor_use") | float(0) > 80 %}System running out of processor ({{ states("sensor.system_monitor_processor_use") }})
+            {% elif states("sensor.system_monitor_processor_temperature") | float(0) > 150 %}System running too hot ({{ states("sensor.system_monitor_processor_temperature") }})
             {%- else -%}System okay
             {%- endif -%}
 
