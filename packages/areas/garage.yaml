@@ -13,7 +13,7 @@ homeassistant:
     #
     # Programmatic entities defined in this package
     #
-    alert.p1_garage_freezer_temp:
+    alert.p2_garage_freezer_temp:
       <<: *package
     alert.p2_garage_double_open:
       <<: *package
@@ -21,7 +21,7 @@ homeassistant:
       <<: *package
     automation.garage_auto_lights:
       <<: *package
-    binary_sensor.p1_garage_freezer_temp_trigger:
+    binary_sensor.p2_garage_freezer_temp_trigger:
       <<: *package
     binary_sensor.p2_garage_double_open_trigger:
       <<: *package
@@ -109,14 +109,14 @@ template:
             Open since {{ as_local(states.cover.garage_double_garage_door.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
 
   - binary_sensor:
-      - name: p1_garage_freezer_temp_trigger
+      - name: p2_garage_freezer_temp_trigger
         state: >
           {{ states("sensor.garage_freezer_monitor_temperature") | int(0) < -10
-            or states("sensor.garage_freezer_monitor_temperature") | int(0) > 10 }}
+            or states("sensor.garage_freezer_monitor_temperature") | int(0) > 20 }}
         availability: >
           {{ not is_state("sensor.garage_freezer_monitor_temperature", ['unavailable', 'unknown', 'none']) }}
         delay_on:
-          minutes: 30
+          minutes: 60
         attributes:
           source_entity_id: sensor.garage_freezer_monitor_temperature
           title: ❄️ Garage Freezer Temp
@@ -152,28 +152,26 @@ alert:
           title: "Mute"
           icon: "sfsymbols:bell.slash"
 
-  p1_garage_freezer_temp:
+  p2_garage_freezer_temp:
     name: Garage Freezer Temp
-    entity_id: binary_sensor.p1_garage_freezer_temp_trigger
+    entity_id: binary_sensor.p2_garage_freezer_temp_trigger
     state: "on"
     can_acknowledge: true
     skip_first: false
-    notifiers: p1_critical
+    notifiers: p2_warning
     repeat:
       - 30
       - 60
-    title: "{{ state_attr('binary_sensor.p1_garage_freezer_temp_trigger', 'title') }}"
-    message: "{{ state_attr('binary_sensor.p1_garage_freezer_temp_trigger', 'message') }}"
+    title: "{{ state_attr('binary_sensor.p2_garage_freezer_temp_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p2_garage_freezer_temp_trigger', 'message') }}"
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p1_garage_freezer_temp_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p2_garage_freezer_temp_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
-      tag: p1_garage_freezer_temp
+      tag: p2_garage_freezer_temp
       subtitle: Lavender Circle
       group: ha
       url: "/1-system/alerts"
-      push:
-        interruption-level: critical
       actions:
-        - action: alert.p1_garage_freezer_temp.mute
+        - action: alert.p2_garage_freezer_temp.mute
           title: "Mute"
           icon: "sfsymbols:bell.slash"
