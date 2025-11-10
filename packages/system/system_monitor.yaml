@@ -13,32 +13,45 @@ homeassistant:
       pkg: &package
         package: system/system_monitor
 
+    #
+    # Programmatic entities defined in this package
+    #
+    alert.p2_system_entities:
+      <<: *package
+
     alert.p2_system_monitor:
+      <<: *package
+
+    binary_sensor.p2_system_entities_trigger:
       <<: *package
 
     binary_sensor.p2_system_monitor_trigger:
       <<: *package
 
+    #
+    # Sensors needed to function
+    #
     sensor.system_monitor_disk_usage:
-      <<: *package
+      device_monitoring: true
       friendly_name: System Disk Usage
 
     sensor.system_monitor_memory_usage:
-      <<: *package
+      device_monitoring: true
       friendly_name: System Memory Usage
 
     sensor.system_monitor_processor_temperature:
-      <<: *package
+      device_monitoring: true
       friendly_name: System Processor Temp
 
     sensor.system_monitor_processor_use:
-      <<: *package
+      device_monitoring: true
       friendly_name: System Processor Usage
 
 #
 # Alert Triggers
 #
 template:
+  # Monitor the state of ha system
   - binary_sensor:
       - name: p2_system_monitor_trigger
         state: >
@@ -63,6 +76,30 @@ template:
             {%- else -%}System okay
             {%- endif -%}
 
+  # Monitor the state of programmatic sensors and entities
+  - binary_sensor:
+      - name: p2_system_entities_trigger
+        state: "{{ this.attributes.get('devices', []) | count > 0 }}"
+        attributes:
+          source_entity_id: "binary_sensor.p2_system_entities_trigger" # self
+          devices: >
+            {{ states
+              | selectattr('attributes.package', 'defined')
+              | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
+              | rejectattr('entity_id', 'eq', 'binary_sensor.p2_system_entities_trigger')
+              | map(attribute="entity_id", default="Unknown")
+              | list }}
+          title: ⚙️ Entity unavailable
+          message: >
+            {% set devices = this.attributes.get('devices', []) %}
+            {% set devices_count = devices | count %}
+            {% set devices_first = devices | first %}
+            {% if devices_count == 0 %}All entities online
+            {% elif devices_count == 1 %}{{ devices_first }} is unavailable
+            {%- else -%}{{ devices_first }} and {{ devices_count - 1 }} others are unavailable
+            {%- endif -%}
+
+
 #
 # Alerts
 #
@@ -80,7 +117,7 @@ alert:
     title: "{{ state_attr('binary_sensor.p2_system_monitor_trigger', 'title') }}"
     message: "{{ state_attr('binary_sensor.p2_system_monitor_trigger', 'message') }}"
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p2_device_status_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p2_system_monitor_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_system_monitor
       subtitle: Lavender Circle
@@ -88,5 +125,29 @@ alert:
       url: "/1-system/alerts"
       actions:
         - action: alert.p2_system_monitor.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"
+
+  p2_system_entities:
+    name: System Entities Warning
+    entity_id: binary_sensor.p2_system_entities_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_warning
+    repeat:
+      - 120
+      - 240
+    title: "{{ state_attr('binary_sensor.p2_system_entities_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p2_system_entities_trigger', 'message') }}"
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p2_system_entities_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_system_entities
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-system/alerts"
+      actions:
+        - action: alert.p2_system_entities.mute
           title: "Mute"
           icon: "sfsymbols:bell.slash"

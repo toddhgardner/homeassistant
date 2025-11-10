@@ -11,68 +11,18 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: system/device_battery
+      bat: &battery
+        device_monitoring: true
+        battery_monitoring: true
 
+    #
+    # Programmatic entities defined in this package
+    #
     alert.p2_device_battery:
       <<: *package
 
     binary_sensor.p2_device_battery_trigger:
       <<: *package
-
-    sensor.basement_bath_leak_battery:
-      <<: *package
-      friendly_name: Basement Bath Leak Battery
-
-    sensor.garage_freezer_monitor_battery:
-      <<: *package
-      friendly_name: Garage Freezer Monitor Battery
-
-    sensor.guest_bath_leak_battery:
-      <<: *package
-      friendly_name: Guest Bath Leak Battery
-
-    sensor.half_bath_leak_battery:
-      <<: *package
-      friendly_name: Half Bath Leak Battery
-
-    sensor.kitchen_dishwasher_leak_battery:
-      <<: *package
-      friendly_name: Kitchen Dishwasher Leak Battery
-
-    sensor.kitchen_pantry_door_battery:
-      <<: *package
-      friendly_name: Kitchen Pantry Door Battery
-
-    sensor.kitchen_refrigerator_leak_battery:
-      <<: *package
-      friendly_name: Kitchen Refrigerator Leak Battery
-
-    sensor.kitchen_sink_leak_battery:
-      <<: *package
-      friendly_name: Kitchen Sink Leak Battery
-
-    sensor.laundry_leak_battery:
-      <<: *package
-      friendly_name: Laundry Leak Battery
-
-    sensor.mudroom_closet_door_battery:
-      <<: *package
-      friendly_name: Mudroom Closet Door Battery
-
-    sensor.primary_bath_toilet_leak_battery:
-      <<: *package
-      friendly_name: Primary Bath Toilet Leak
-
-    sensor.primary_bath_tub_leak_battery:
-      <<: *package
-      friendly_name: Primary Bath Tub Leak
-
-    sensor.suite_bath_leak_battery:
-      <<: *package
-      friendly_name: Suite Bath Leak
-
-    sensor.utility_drain_leak_battery:
-      <<: *package
-      friendly_name: Utility Drain Leak Battery
 
     sensor.test_battery:
       <<: *package
@@ -81,6 +31,66 @@ homeassistant:
     input_number.test_battery:
       <<: *package
       friendly_name: Test Battery
+
+    #
+    # Sensors needed to function
+    #
+    sensor.basement_bath_leak_battery:
+      <<: *battery
+      friendly_name: Basement Bath Leak Battery
+
+    sensor.garage_freezer_monitor_battery:
+      <<: *battery
+      friendly_name: Garage Freezer Monitor Battery
+
+    sensor.guest_bath_leak_battery:
+      <<: *battery
+      friendly_name: Guest Bath Leak Battery
+
+    sensor.half_bath_leak_battery:
+      <<: *battery
+      friendly_name: Half Bath Leak Battery
+
+    sensor.kitchen_dishwasher_leak_battery:
+      <<: *battery
+      friendly_name: Kitchen Dishwasher Leak Battery
+
+    sensor.kitchen_pantry_door_battery:
+      <<: *battery
+      friendly_name: Kitchen Pantry Door Battery
+
+    sensor.kitchen_refrigerator_leak_battery:
+      <<: *battery
+      friendly_name: Kitchen Refrigerator Leak Battery
+
+    sensor.kitchen_sink_leak_battery:
+      <<: *battery
+      friendly_name: Kitchen Sink Leak Battery
+
+    sensor.laundry_leak_battery:
+      <<: *battery
+      friendly_name: Laundry Leak Battery
+
+    sensor.mudroom_closet_door_battery:
+      <<: *battery
+      friendly_name: Mudroom Closet Door Battery
+
+    sensor.primary_bath_toilet_leak_battery:
+      <<: *battery
+      friendly_name: Primary Bath Toilet Leak
+
+    sensor.primary_bath_tub_leak_battery:
+      <<: *battery
+      friendly_name: Primary Bath Tub Leak
+
+    sensor.suite_bath_leak_battery:
+      <<: *battery
+      friendly_name: Suite Bath Leak
+
+    sensor.utility_drain_leak_battery:
+      <<: *battery
+      friendly_name: Utility Drain Leak Battery
+
 
 #
 # Test Sensor
@@ -100,6 +110,7 @@ template:
       - name: test_battery
         state: "{{ states('input_number.test_battery') }}"
         device_class: battery
+        unit_of_measurement: "%"
 
   - binary_sensor:
       - name: p2_device_battery_trigger
@@ -109,7 +120,7 @@ template:
           devices: >
             {% set ns = namespace(batteries=[]) %}
             {% for entity in states.sensor
-              | selectattr('attributes.package', 'eq', 'system/device_battery')
+              | selectattr('attributes.battery_monitoring', 'defined')
               | selectattr('attributes.device_class', 'eq', 'battery')
               | rejectattr('state', 'in', ['unknown', 'unavailable', 'none']) %}
               {% if entity.state | int(-1) <= 20 and entity.state | int(-1) >= 0 %}

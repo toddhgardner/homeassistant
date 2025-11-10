@@ -1,4 +1,4 @@
-# Device Status
+# Device Monitoring
 # System
 #
 # Monitor the availability of devices critical to defined automations and alerts.
@@ -10,8 +10,11 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: system/device_status
+        package: system/device_monitoring
 
+    #
+    # Programmatic entities defined in this package
+    #
     alert.p2_device_status:
       <<: *package
 
@@ -39,24 +42,25 @@ template:
 
   - binary_sensor:
       - name: p2_device_status_trigger
-        state: "{{ this.attributes.devices | count > 0 }}"
+        state: "{{ this.attributes.get('devices', []) | count > 0 }}"
         delay_on:
           minutes: 5
         attributes:
           source_entity_id: "binary_sensor.p2_device_status_trigger" # self
           devices: >
             {{ states
-              | selectattr('attributes.package', 'defined')
+              | selectattr('attributes.device_monitoring', 'defined')
               | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
               | map(attribute="attributes.friendly_name", default="Unknown")
               | list }}
-          title: 🛜 Device offline
+          title: 🛜 Device unavailable
           message: >
-            {% set devices_count = this.attributes.devices | count %}
-            {% set devices_first = this.attributes.devices | first %}
+            {% set devices = this.attributes.get('devices', []) %}
+            {% set devices_count = devices | count %}
+            {% set devices_first = devices | first %}
             {% if devices_count == 0 %}All devices online
-            {% elif devices_count == 1 %}{{ devices_first }} is offline
-            {%- else -%}{{ devices_first }} and {{ devices_count - 1 }} others are offline
+            {% elif devices_count == 1 %}{{ devices_first }} is unavailable
+            {%- else -%}{{ devices_first }} and {{ devices_count - 1 }} others are unavailable
             {%- endif -%}
 
 #

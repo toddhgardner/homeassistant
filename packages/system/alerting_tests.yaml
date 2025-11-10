@@ -13,6 +13,9 @@ homeassistant:
       pkg: &package
         package: system/alert_test
 
+    #
+    # Programmatic entities defined in this package
+    #
     alert.p1_test_alert:
       <<: *package
 

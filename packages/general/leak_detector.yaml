@@ -13,8 +13,27 @@ homeassistant:
         package: general/leak_detector
 
       leak: &leak
-        package: general/leak_detector
+        leak_monitoring: true
         show_as: moisture
+
+    #
+    # Programmatic entities defined in this package
+    #
+    alert.p1_leak_detector:
+      <<: *package
+
+    binary_sensor.p1_leak_detector_trigger:
+      <<: *package
+
+    input_boolean.test_leak:
+      <<: *package
+      friendly_name: Test Leak
+
+    binary_sensor.test_leak:
+      <<: *package
+      leak_monitoring: true
+      show_as: moisture
+      friendly_name: Test Leak
 
     #
     # Leak Sensors
@@ -63,23 +82,6 @@ homeassistant:
       <<: *leak
       friendly_name: Utility Drain Leak
 
-    binary_sensor.test_leak:
-      <<: *leak
-      friendly_name: Test Leak
-
-    #
-    # Other package items
-    #
-    alert.p1_leak_detector:
-      <<: *package
-
-    binary_sensor.p1_leak_detector_trigger:
-      <<: *package
-
-    input_boolean.test_leak:
-      <<: *package
-      friendly_name: Test Leak
-
 #
 # Test Sensor
 #
@@ -94,16 +96,15 @@ template:
   - binary_sensor:
       - name: test_leak
         state: "{{ states('input_boolean.test_leak') }}"
-        device_class: moisture
 
   - binary_sensor:
       - name: p1_leak_detector_trigger
-        state: "{{ this.attributes.devices | count > 0 }}"
+        state: "{{ this.attributes.get('devices', []) | count > 0 }}"
         attributes:
           source_entity_id: "binary_sensor.p1_leak_detector_trigger" # self
           devices: >
             {{ states.binary_sensor
-              | selectattr('attributes.package', 'eq', 'general/leak_detector')
+              | selectattr('attributes.leak_monitoring', 'defined')
               | selectattr('attributes.device_class', 'eq', 'moisture')
               | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
               | selectattr('state', 'eq', 'on')
@@ -111,8 +112,9 @@ template:
               | list }}
           title: 💧 Leak Detected
           message: >
-            {% set devices_count = this.attributes.devices | count %}
-            {% set devices_first = this.attributes.devices | first %}
+            {% set devices = this.attributes.get('devices', []) %}
+            {% set devices_count = devices | count %}
+            {% set devices_first = devices | first %}
             {% if devices_count == 0 %}All detectors dry
             {% elif devices_count == 1 %}{{ devices_first }} is wet
             {%- else -%}{{ devices_first }} and {{ devices_count - 1 }} others are wet

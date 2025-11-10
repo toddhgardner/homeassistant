@@ -7,17 +7,24 @@
 homeassistant:
   customize:
     package.node_anchors:
-      mudroom_closet_door: &mudroom_closet_door binary_sensor.mudroom_closet_door
-      mudroom_closet_lights: &mudroom_closet_lights switch.mudroom_closet_light_switch
       pkg: &package
         package: area/mudroom
 
-    *mudroom_closet_door :
+    #
+    # Programmatic entities defined in this package
+    #
+    automation.mudroom_closet_auto_lights:
       <<: *package
+
+    #
+    # Sensors needed to function
+    #
+    binary_sensor.mudroom_closet_door:
+      device_monitoring: true
       friendly_name: Mudroom Closet Door
 
-    *mudroom_closet_lights :
-      <<: *package
+    switch.mudroom_closet_light_switch:
+      device_monitoring: true
       friendly_name: Mudroom Closet Lights
 
 #
@@ -27,49 +34,10 @@ automation:
 
   - id: mudroom_closet_auto_lights
     alias: Mudroom Closet Auto Lights
-    description: >
-      Turn on closet lights when door opens, turn off 2 minutes after door
-      closes.
-    triggers:
-      - trigger: state
-        entity_id: *mudroom_closet_door
-        to: "on"
-        id: door_opened
-      - trigger: state
-        entity_id: *mudroom_closet_door
-        to: "off"
-        for:
-          minutes: 2
-        id: door_closed
-    actions:
-      - choose:
-          - conditions:
-              - condition: trigger
-                id: door_opened
-            sequence:
-              - action: switch.turn_on
-                target:
-                  entity_id: *mudroom_closet_lights
-          - conditions:
-              - condition: trigger
-                id: door_closed
-            sequence:
-              - action: switch.turn_off
-                target:
-                  entity_id: *mudroom_closet_lights
-    mode: restart
-
-  - id: mudroom_closet_lights_auto_off
-    alias: Mudroom Closet Lights Auto Off
-    description: "Turn off idle closet lights."
-    triggers:
-      - trigger: state
-        entity_id: *mudroom_closet_lights
-        to: "on"
-        for:
-          minutes: 10
-    actions:
-      - action: switch.turn_off
-        target:
-          entity_id: *mudroom_closet_lights
-    mode: restart
+    use_blueprint:
+      path: auto_door_lights.yaml
+      input:
+        trigger_sensors: binary_sensor.mudroom_closet_door
+        target_lights: switch.mudroom_closet_light_switch
+        off_delay: 2
+        off_idle_delay: 10

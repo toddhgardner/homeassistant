@@ -13,6 +13,9 @@ homeassistant:
       pkg: &package
         package: system/alerting
 
+    #
+    # Programmatic entities defined in this package
+    #
     automation.alert_action_handler:
       <<: *package
 

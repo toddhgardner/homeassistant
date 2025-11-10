@@ -13,6 +13,9 @@ homeassistant:
       pkg: &package
         package: system/heartbeat
 
+    #
+    # Programmatic entities defined in this package
+    #
     alert.p2_heartbeat:
       <<: *package
 
@@ -28,18 +31,16 @@ homeassistant:
     rest_command.send_heartbeat:
       <<: *package
 
+    #
+    # Sensors needed to function
+    #
     sensor.ha_uptime:
-      <<: *package
+      device_monitoring: true
       friendly_name: System Uptime
 
-    shell_command.ping_status:
-      <<: *package
-
-#
-# Get the ping time from status.toddhgardner.com
-#
-shell_command:
-  ping_status: "ping -c 1 status.toddhgardner.com | awk -F'time=| ms' '/time=/{print $2}'"
+    sensor.status_toddhgardner_com_round_trip_time_average:
+      device_monitoring: true
+      friendly_name: "Status Ping Time"
 
 #
 # Send Heartbeat REST request to status.toddhgardner.com
@@ -70,13 +71,11 @@ automation:
       - trigger: time_pattern
         minutes: "/1"
     actions:
-      - action: shell_command.ping_status
-        response_variable: status_ping_time
       - action: rest_command.send_heartbeat
         data:
           status: "up"
           msg: "uptime: {{ relative_time(as_datetime(states('sensor.ha_uptime'))) }}"
-          ping: "{{ status_ping_time['stdout'] }}"
+          ping: "{{ states('sensor.status_toddhgardner_com_round_trip_time_average') }}"
         response_variable: heartbeat_result
       - if:
           - condition: template

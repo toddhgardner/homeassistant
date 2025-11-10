@@ -1,0 +1,120 @@
+# Auto Door Lights
+# Blueprint
+#
+---
+
+blueprint:
+  name: Auto Door Lights
+  description: >
+    Automatically turn on lights/switches when any monitored door opens,
+    and turn them off after a configurable delay when all doors are closed.
+  domain: automation
+  input:
+
+    trigger_sensors:
+      name: Door or Cover Sensors
+      description: Door or cover sensors that will trigger the lights (garage doors, gates, blinds, etc.)
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class:
+            - door
+            - garage_door
+            - gate
+            - window
+            - opening
+          multiple: true
+
+    target_lights:
+      name: Lights/Switches
+      description: Lights or switches to control
+      selector:
+        entity:
+          domain:
+            - light
+            - switch
+          multiple: true
+
+    off_delay:
+      name: Turn Off Delay
+      description: Time to wait after all doors close before turning off lights
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 300
+          unit_of_measurement: minutes
+          mode: slider
+
+    off_idle_delay:
+      name: Idle Turn Off Delay
+      description: Maximum time lights stay on regardless of door status (0 to disable)
+      default: 10
+      selector:
+        number:
+          min: 0
+          max: 300
+          unit_of_measurement: minutes
+          mode: slider
+
+mode: restart
+
+trigger:
+  - platform: state
+    entity_id: !input trigger_sensors
+    to:
+      - "on"
+      - "open"
+      - "opening"
+    id: opened
+
+  - platform: state
+    entity_id: !input trigger_sensors
+    to:
+      - "off"
+      - "closed"
+    for:
+      minutes: !input off_delay
+    id: closed
+
+  - platform: state
+    entity_id: !input target_lights
+    to: "on"
+    for:
+      minutes: !input off_idle_delay
+    id: idle_timeout
+
+condition: []
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: opened
+        sequence:
+          - service: homeassistant.turn_on
+            target:
+              entity_id: !input target_lights
+
+      - conditions:
+          - condition: trigger
+            id: closed
+          - condition: state
+            entity_id: !input trigger_sensors
+            state:
+              - "off"
+              - "closed"
+        sequence:
+          - service: homeassistant.turn_off
+            target:
+              entity_id: !input target_lights
+
+      - conditions:
+          - condition: trigger
+            id: idle_timeout
+          - condition: template
+            value_template: "{{ off_idle_delay | int > 0 }}"
+        sequence:
+          - service: homeassistant.turn_off
+            target:
+              entity_id: !input target_lights

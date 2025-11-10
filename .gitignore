@@ -17,12 +17,8 @@ secrets.yaml
 #scenes.yaml
 #scripts.yaml
 
-# Built-in blueprints ignores
-blueprints/*/homeassistant
-
 # Ignore vendored stuff
 custom_components
-blueprints
 image
 www
 

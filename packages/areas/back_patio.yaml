@@ -11,17 +11,29 @@ homeassistant:
       pkg: &package
         package: area/back_patio
 
-    switch.back_patio_switch:
+    #
+    # Programmatic entities defined in this package
+    #
+    automation.back_patio_auto_lights:
       <<: *package
+
+    automation.back_patio_auto_heat_mats_off:
+      <<: *package
+
+    #
+    # Sensors needed to function
+    #
+    switch.back_patio_switch:
+      device_monitoring: true
       friendly_name: Back Patio Switch
 
     switch.back_patio_outlet_1:
-      <<: *package
+      device_monitoring: true
       friendly_name: Back Patio Heat Mats
       icon: mdi:heat-wave
 
     switch.back_patio_outlet_2:
-      <<: *package
+      device_monitoring: true
       friendly_name: Back Patio String Lights
       icon: mdi:string-lights
 

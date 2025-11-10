@@ -7,21 +7,37 @@
 homeassistant:
   customize:
     package.node_anchors:
-      theater_media_player: &theater_media_player media_player.home_theater
-      theater_lights_main: &theater_lights_main light.theater_main_lights
-      theater_lights_decor: &theater_lights_decor light.theater_sconces
       pkg: &package
         package: area/theater
 
-    *theater_media_player :
+    #
+    # Programmatic entities defined in this package
+    #
+    automation.theater_auto_pause_lights:
+      <<: *package
+    automation.theater_auto_playing_lights:
+      <<: *package
+    automation.theater_auto_off_lights:
+      <<: *package
+    scene.theater_lights_paused:
+      <<: *package
+    scene.theater_lights_playing:
+      <<: *package
+    scene.theater_lights_full:
+      <<: *package
+
+    #
+    # Sensors needed to function
+    #
+    media_player.home_theater:
       <<: *package
       friendly_name: Theater AppleTV
 
-    *theater_lights_main :
+    light.theater_main_lights:
       <<: *package
       friendly_name: Theater Lights
 
-    *theater_lights_decor :
+    light.theater_sconces:
       <<: *package
       friendly_name: Theater Decor Lighting
 
@@ -34,10 +50,10 @@ scene:
     name: Theater Lights Paused
     icon: mdi:pause-circle
     entities:
-      *theater_lights_main :
+      light.theater_main_lights :
         state: "on"
         brightness: 25
-      *theater_lights_decor :
+      light.theater_sconces :
         state: "on"
         brightness: 255
 
@@ -45,9 +61,9 @@ scene:
     name: Theater Lights Playing
     icon: mdi:play-circle
     entities:
-      *theater_lights_main :
+      light.theater_main_lights :
         state: "off"
-      *theater_lights_decor :
+      light.theater_sconces :
         state: "on"
         brightness: 64
 
@@ -55,10 +71,10 @@ scene:
     name: Theater Lights Full
     icon: mdi:lightbulb-on
     entities:
-      *theater_lights_main :
+      light.theater_main_lights :
         state: "on"
         brightness: 255
-      *theater_lights_decor :
+      light.theater_sconces :
         state: "off"
 
 #
@@ -71,12 +87,12 @@ automation:
     description: "Set theater-lights-paused scene when Apple TV is paused or idle"
     triggers:
       - trigger: state
-        entity_id: *theater_media_player
+        entity_id: media_player.home_theater
         to: "paused"
         for:
           seconds: 2
       - trigger: state
-        entity_id: *theater_media_player
+        entity_id: media_player.home_theater
         to: "idle"
         for:
           seconds: 2
@@ -94,7 +110,7 @@ automation:
     description: "Set theater-lights-playing scene when Apple TV starts playing content"
     triggers:
       - trigger: state
-        entity_id: *theater_media_player
+        entity_id: media_player.home_theater
         to: "playing"
         for:
           seconds: 10
@@ -111,11 +127,11 @@ automation:
     description: "Set theater-lights-full scene when Apple TV turns off"
     triggers:
       - trigger: state
-        entity_id: *theater_media_player
+        entity_id: media_player.home_theater
         to: "standby"
         not_from: "unknown" # so lights dont come on when it disconnects or reboots
       - trigger: state
-        entity_id: *theater_media_player
+        entity_id: media_player.home_theater
         to: "off"
         not_from: "unknown" # so lights dont come on when it disconnects or reboots
     conditions: []

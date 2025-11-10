@@ -7,31 +7,40 @@
 homeassistant:
   customize:
     package.node_anchors:
-      back_office_lights: &back_office_lights switch.back_office_lightswitch
-      back_office_lights_wall: &back_office_wall_lights switch.back_office_wall_lights
       pkg: &package
         package: area/back_office
-    *back_office_lights :
+
+    #
+    # Programmatic entities defined in this package
+    #
+    automation.back_office_auto_lights:
       <<: *package
+
+    #
+    # Sensors needed to function
+    #
+    switch.back_office_lightswitch :
+      device_monitoring: true
       friendly_name: Back Office Lights
-    *back_office_wall_lights :
-      <<: *package
+
+    switch.back_office_wall_lights:
+      device_monitoring: true
       friendly_name: Back Office Wall Lights
 
+#
+# Automations to sync lighting with switch
+#
 automation:
-  #
-  # Automations to sync lighting with switch
-  #
   - id: back_office_auto_lights
     alias: Back Office Auto Lights
     description: "Toggle the wall lighting with the main switch."
     triggers:
       - trigger: state
-        entity_id: *back_office_lights
+        entity_id: switch.back_office_lightswitch
         to: "off"
         id: back_office_switch_off
       - trigger: state
-        entity_id: *back_office_lights
+        entity_id: switch.back_office_lightswitch
         to: "on"
         id: back_office_switch_on
     actions:
@@ -42,12 +51,12 @@ automation:
             sequence:
               - action: switch.turn_off
                 target:
-                  entity_id: *back_office_wall_lights
+                  entity_id: switch.back_office_wall_lights
           - conditions:
               - condition: trigger
                 id: back_office_switch_on
             sequence:
               - action: switch.turn_on
                 target:
-                  entity_id: *back_office_wall_lights
+                  entity_id: switch.back_office_wall_lights
     mode: single
