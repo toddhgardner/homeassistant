@@ -26,6 +26,7 @@ homeassistant:
 
     sensor.test_battery:
       <<: *package
+      battery_monitoring: true
       friendly_name: Test Battery
 
     input_number.test_battery:

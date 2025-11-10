@@ -96,6 +96,7 @@ template:
   - binary_sensor:
       - name: test_leak
         state: "{{ states('input_boolean.test_leak') }}"
+        device_class: moisture
 
   - binary_sensor:
       - name: p1_leak_detector_trigger
