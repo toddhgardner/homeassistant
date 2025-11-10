@@ -24,6 +24,7 @@ www
 
 .vscode
 .HA_VERSION
+.ha_run.lock
 .cloud
 .storage
 .ssh
