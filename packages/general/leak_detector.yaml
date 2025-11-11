@@ -144,6 +144,8 @@ alert:
       subtitle: Lavender Circle
       group: ha
       url: "/1-system/alerts"
+      push:
+        interruption-level: critical
       actions:
         - action: alert.p1_leak_detector.mute
           title: "Mute"
