@@ -1,0 +1,66 @@
+# Auto Link Switch
+# Blueprint
+#
+---
+
+blueprint:
+  name: Auto Link Switch
+  description: >
+    Link multiple entities (switches, lights, etc.) to toggle on and off
+    with a source switch. When the source switch turns on/off, all linked
+    entities will turn on/off accordingly.
+  domain: automation
+  input:
+
+    source_switch:
+      name: Source Switch
+      description: The switch that will control the linked entities
+      selector:
+        entity:
+          domain:
+            - switch
+            - light
+          multiple: false
+
+    linked_entities:
+      name: Linked Entities
+      description: Entities that will follow the source switch state (on/off)
+      selector:
+        entity:
+          domain:
+            - switch
+            - light
+          multiple: true
+
+mode: single
+
+trigger:
+  - platform: state
+    entity_id: !input source_switch
+    to: "off"
+    id: switch_off
+
+  - platform: state
+    entity_id: !input source_switch
+    to: "on"
+    id: switch_on
+
+condition: []
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: switch_off
+        sequence:
+          - service: homeassistant.turn_off
+            target:
+              entity_id: !input linked_entities
+
+      - conditions:
+          - condition: trigger
+            id: switch_on
+        sequence:
+          - service: homeassistant.turn_on
+            target:
+              entity_id: !input linked_entities

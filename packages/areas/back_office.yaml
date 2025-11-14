@@ -34,29 +34,9 @@ automation:
   - id: back_office_auto_lights
     alias: Back Office Auto Lights
     description: "Toggle the wall lighting with the main switch."
-    triggers:
-      - trigger: state
-        entity_id: switch.back_office_lightswitch
-        to: "off"
-        id: back_office_switch_off
-      - trigger: state
-        entity_id: switch.back_office_lightswitch
-        to: "on"
-        id: back_office_switch_on
-    actions:
-      - choose:
-          - conditions:
-              - condition: trigger
-                id: back_office_switch_off
-            sequence:
-              - action: switch.turn_off
-                target:
-                  entity_id: switch.back_office_wall_lights
-          - conditions:
-              - condition: trigger
-                id: back_office_switch_on
-            sequence:
-              - action: switch.turn_on
-                target:
-                  entity_id: switch.back_office_wall_lights
-    mode: single
+    use_blueprint:
+      path: auto_link_switch.yaml
+      input:
+        source_switch: switch.back_office_lightswitch
+        linked_entities:
+          - switch.back_office_wall_lights
