@@ -43,18 +43,20 @@ automation:
     alias: UPS Emergency Shutdown
     description: "Shutdown HA and NAS when UPS battery drops below 20%"
     triggers:
-      - trigger: numeric_state
+      - trigger: state
         entity_id: sensor.cyberpower_network_ups_battery_charge
-        below: 20
-    conditions:
-      - condition: state
+      - trigger: state
         entity_id: sensor.cyberpower_network_ups_status
-        state: "On Battery"
+    conditions:
+      - condition: template
+        value_template: >
+          {{ 'On Battery' in states('sensor.cyberpower_network_ups_status')
+             and states('sensor.cyberpower_network_ups_battery_charge') | float(100) < 95 }}
     actions:
       - action: notify.p1_critical
         data:
           title: "🪫 UPS battery critical - shutting down"
-          message: "Battery at {{ states('sensor.cyberpower_network_ups_battery_charge', rounded=True, with_unit=True) }}% - Initiating emergency shutdown"
+          message: "Battery at {{ states('sensor.cyberpower_network_ups_battery_charge', rounded=True, with_unit=True) }} - Initiating emergency shutdown"
           data:
             tag: p1_ups_critical
             subtitle: Lavender Circle
