@@ -9,6 +9,8 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: area/kitchen
+      ety: &entity
+        entity_monitor: on
 
     #
     # Programmatic entities defined in this package
@@ -20,12 +22,9 @@ homeassistant:
     # Sensors needed to function
     #
     binary_sensor.kitchen_pantry_door:
-      device_monitoring: true
-      friendly_name: Kitchen Pantry Door
-
+      <<: *entity
     switch.kitchen_pantry_light_switch:
-      device_monitoring: true
-      friendly_name: Kitchen Pantry Lights
+      <<: *entity
 
 #
 # Automations

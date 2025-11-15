@@ -12,22 +12,20 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: system/heartbeat
+      ety: &entity
+        entity_monitor: on
 
     #
     # Programmatic entities defined in this package
     #
     alert.p2_heartbeat:
       <<: *package
-
     automation.heartbeat_auto_send:
       <<: *package
-
     binary_sensor.p2_heartbeat_trigger:
       <<: *package
-
     input_datetime.last_successful_heartbeat:
       <<: *package
-
     rest_command.send_heartbeat:
       <<: *package
 
@@ -35,12 +33,9 @@ homeassistant:
     # Sensors needed to function
     #
     sensor.ha_uptime:
-      device_monitoring: true
-      friendly_name: System Uptime
-
+      <<: *entity
     sensor.status_toddhgardner_com_round_trip_time_average:
-      device_monitoring: true
-      friendly_name: "Status Ping Time"
+      <<: *entity
 
 #
 # Send Heartbeat REST request to status.toddhgardner.com
@@ -97,6 +92,7 @@ template:
         state: >
           {{ now().timestamp() - state_attr('input_datetime.last_successful_heartbeat', 'timestamp') > 300 }}
         attributes:
+          device_class: problem
           source_entity_id: "input_datetime.last_successful_heartbeat"
           title: 💔 No heartbeat
           message: >
@@ -116,8 +112,8 @@ alert:
     skip_first: false
     notifiers: p2_warning
     repeat:
+      - 60
       - 120
-      - 240
     title: "{{ state_attr('binary_sensor.p2_heartbeat_trigger', 'title') }}"
     message: "{{ state_attr('binary_sensor.p2_heartbeat_trigger', 'message') }}"
     done_message: >

@@ -1,4 +1,4 @@
-# Power Monitoring
+# Power Monitor
 # General
 #
 # Monitor UPS status and alert when on battery power
@@ -10,17 +10,17 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: general/power_monitoring
+        package: general/power_monitor
+      ety: &entity
+        entity_monitor: on
 
     #
     # Programmatic entities defined in this package
     #
     alert.p2_ups_on_battery:
       <<: *package
-
     automation.ups_emergency_shutdown:
       <<: *package
-
     binary_sensor.p2_ups_on_battery_trigger:
       <<: *package
 
@@ -28,12 +28,9 @@ homeassistant:
     # Sensors needed to function
     #
     sensor.cyberpower_network_ups_battery_charge:
-      device_monitoring: true
-      friendly_name: UPS Battery
-
+      <<: *entity
     sensor.cyberpower_network_ups_status:
-      device_monitoring: true
-      friendly_name: UPS Status
+      <<: *entity
 
 #
 # Automations
@@ -77,10 +74,12 @@ automation:
 #
 template:
   - binary_sensor:
+
       - name: p2_ups_on_battery_trigger
         state: >
           {{ 'On Battery' in states('sensor.cyberpower_network_ups_status') }}
         attributes:
+          device_class: problem
           source_entity_id: sensor.cyberpower_network_ups_status
           title: 🔌 Power is out
           message: >
@@ -102,8 +101,8 @@ alert:
     skip_first: false
     notifiers: p2_warning
     repeat:
-      - 120
-      - 240
+      - 30
+      - 60
     title: "{{ state_attr('binary_sensor.p2_ups_on_battery_trigger', 'title') }}"
     message: "{{ state_attr('binary_sensor.p2_ups_on_battery_trigger', 'message') }}"
     done_message: >

@@ -1,6 +1,7 @@
 # Garage
 # Area
 ---
+
 #
 # Device Configuration
 #
@@ -9,6 +10,8 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: area/garage
+      ety: &entity
+        entity_monitor: on
 
     #
     # Programmatic entities defined in this package
@@ -27,36 +30,26 @@ homeassistant:
       <<: *package
 
     #
-    # Sensors needed to function
+    # Entities needed to function
     #
     binary_sensor.alarm_panel_garage_door:
-      device_monitoring: true
-      friendly_name: Garage Door
-
+      <<: *entity
     cover.garage_double_garage_door:
-      device_monitoring: true
-      friendly_name: Garage Double Cover
-
+      <<: *entity
     lock.garage_double_lock:
-      device_monitoring: true
-      friendly_name: Garage Double Cover Lock
-
+      <<: *entity
     switch.garage_lights:
-      device_monitoring: true
-      friendly_name: Garage Light Switch
-
+      <<: *entity
     switch.outside_garage_lights:
-      device_monitoring: true
-      friendly_name: Garage Outside Lights
-
+      <<: *entity
     sensor.garage_freezer_monitor_temperature:
-      device_monitoring: true
-      friendly_name: Garage Freezer Temperature
+      <<: *entity
 
 #
 # Automations
 #
 automation:
+
   - id: garage_double_auto_close
     alias: Garage Double Auto Close
     description: "Close double garage door if left open for 10 minutes."
@@ -93,22 +86,21 @@ automation:
 # Alert Triggers
 #
 template:
-
   - binary_sensor:
+
       - name: p2_garage_double_open_trigger
-        state: >
-          {{ is_state("cover.garage_double_garage_door", 'open') }}
+        state: "{{ is_state('cover.garage_double_garage_door', 'open') }}"
         availability: >
           {{ not is_state("cover.garage_double_garage_door", ['unavailable', 'unknown', 'none']) }}
         delay_on:
           minutes: 60
         attributes:
+          device_class: problem
           source_entity_id: cover.garage_double_garage_door
           title: 🚗 Garage Door Open
           message: >
             Open since {{ as_local(states.cover.garage_double_garage_door.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
 
-  - binary_sensor:
       - name: p2_garage_freezer_temp_trigger
         state: >
           {{ states("sensor.garage_freezer_monitor_temperature") | int(0) < -10
@@ -118,6 +110,7 @@ template:
         delay_on:
           minutes: 60
         attributes:
+          device_class: problem
           source_entity_id: sensor.garage_freezer_monitor_temperature
           title: ❄️ Garage Freezer Temp
           message: >
@@ -160,8 +153,8 @@ alert:
     skip_first: false
     notifiers: p2_warning
     repeat:
-      - 30
       - 60
+      - 120
     title: "{{ state_attr('binary_sensor.p2_garage_freezer_temp_trigger', 'title') }}"
     message: "{{ state_attr('binary_sensor.p2_garage_freezer_temp_trigger', 'message') }}"
     done_message: >

@@ -18,22 +18,16 @@ homeassistant:
     #
     automation.alert_action_handler:
       <<: *package
-
     automation.alert_daily_unmute:
       <<: *package
-
     notify.email_todd:
       <<: *package
-
     notify.p1_critical:
       <<: *package
-
     notify.p2_warning:
       <<: *package
-
     sensor.alert_p1_active_count:
       <<: *package
-
     sensor.alert_p2_active_count:
       <<: *package
 

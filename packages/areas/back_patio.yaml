@@ -10,13 +10,14 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: area/back_patio
+      ety: &entity
+        entity_monitor: on
 
     #
     # Programmatic entities defined in this package
     #
     automation.back_patio_auto_lights:
       <<: *package
-
     automation.back_patio_auto_heat_mats_off:
       <<: *package
 
@@ -24,17 +25,12 @@ homeassistant:
     # Sensors needed to function
     #
     switch.back_patio_switch:
-      device_monitoring: true
-      friendly_name: Back Patio Switch
-
+      <<: *entity
     switch.back_patio_heat_mats:
-      device_monitoring: true
-      friendly_name: Back Patio Heat Mats
+      <<: *entity
       icon: mdi:heat-wave
-
     switch.back_patio_string_lights:
-      device_monitoring: true
-      friendly_name: Back Patio String Lights
+      <<: *entity
       icon: mdi:string-lights
 
 automation:
@@ -57,13 +53,13 @@ automation:
   #
   - id: back_patio_auto_heat_mats_off
     alias: Back Patio Auto Heat Mats Off
-    description: "Turn off heat mats after 3 hours."
+    description: "Turn off heat mats automatically"
     triggers:
       - trigger: state
         entity_id: switch.back_patio_heat_mats
         to: "on"
         for:
-          hours: 3
+          minutes: 90
     actions:
       - action: switch.turn_off
         target:

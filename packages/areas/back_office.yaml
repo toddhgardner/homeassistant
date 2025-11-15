@@ -9,6 +9,8 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: area/back_office
+      ety: &entity
+        entity_monitor: on
 
     #
     # Programmatic entities defined in this package
@@ -20,12 +22,9 @@ homeassistant:
     # Sensors needed to function
     #
     switch.back_office_lightswitch :
-      device_monitoring: true
-      friendly_name: Back Office Lights
-
+      <<: *entity
     switch.back_office_wall_lights:
-      device_monitoring: true
-      friendly_name: Back Office Wall Lights
+      <<: *entity
 
 #
 # Automations to sync lighting with switch

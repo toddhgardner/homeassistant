@@ -1,7 +1,7 @@
-# Leak Detector
+# Leak Monitor
 # General
 #
-# Trigger alerts if any leak detector goes off.
+# Trigger alerts if any leak sensor goes off.
 ---
 #
 # Device Configuration
@@ -10,10 +10,10 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: general/leak_detector
-
-      leak: &leak
-        leak_monitoring: true
+        package: general/leak_monitor
+      ety: &entity
+        entity_monitor: on
+        leak_monitor: on
         show_as: moisture
 
     #
@@ -21,105 +21,81 @@ homeassistant:
     #
     alert.p1_leak_detector:
       <<: *package
-
     binary_sensor.p1_leak_detector_trigger:
       <<: *package
-
     input_boolean.test_leak:
       <<: *package
-      friendly_name: Test Leak
-
     binary_sensor.test_leak:
       <<: *package
-      leak_monitoring: true
-      show_as: moisture
-      friendly_name: Test Leak
 
     #
     # Leak Sensors
     #
     binary_sensor.basement_bath_leak:
-      <<: *leak
-      friendly_name: Basement Bath Leak
-
+      <<: *entity
     binary_sensor.guest_bath_leak:
-      <<: *leak
-      friendly_name: Guest Bath Leak
-
+      <<: *entity
     binary_sensor.half_bath_leak:
-      <<: *leak
-      friendly_name: Half Bath Leak
-
+      <<: *entity
     binary_sensor.kitchen_dishwasher_leak:
-      <<: *leak
-      friendly_name: Kitchen Dishwasher Leak
-
+      <<: *entity
     binary_sensor.kitchen_refrigerator_leak:
-      <<: *leak
-      friendly_name: Kitchen Refrigerator Leak
-
+      <<: *entity
     binary_sensor.kitchen_sink_leak:
-      <<: *leak
-      friendly_name: Kitchen Sink Leak
-
+      <<: *entity
     binary_sensor.laundry_leak:
-      <<: *leak
-      friendly_name: Laundry Leak
-
+      <<: *entity
     binary_sensor.primary_bath_toilet_leak:
-      <<: *leak
-      friendly_name: Primary Bath Toilet Leak
-
+      <<: *entity
     binary_sensor.primary_bath_tub_leak:
-      <<: *leak
-      friendly_name: Primary Bath Tub Leak
-
+      <<: *entity
     binary_sensor.suite_bath_leak:
-      <<: *leak
-      friendly_name: Suite Bath Leak
-
+      <<: *entity
     binary_sensor.utility_drain_leak:
-      <<: *leak
-      friendly_name: Utility Drain Leak
-
+      <<: *entity
 #
-# Test Sensor
+# Toggle Test Sensor
 #
 input_boolean:
   test_leak:
+    initial: off
 
-#
-# Alert Triggers
-#
 template:
-
   - binary_sensor:
+
+      #
+      # Test Sensor
+      #
       - name: test_leak
         state: "{{ states('input_boolean.test_leak') }}"
-        device_class: moisture
-
-  - binary_sensor:
-      - name: p1_leak_detector_trigger
-        state: "{{ this.attributes.get('devices', []) | count > 0 }}"
         attributes:
-          source_entity_id: "binary_sensor.p1_leak_detector_trigger" # self
-          devices: >
+          device_class: moisture
+          leak_monitor: on
+
+      #
+      # Alert Triggers
+      #
+      - name: p1_leak_detector_trigger
+        state: "{{ this.attributes.get('entities', []) | count > 0 }}"
+        attributes:
+          entities: >
             {{ states.binary_sensor
               | selectattr('attributes.leak_monitoring', 'defined')
               | selectattr('attributes.device_class', 'eq', 'moisture')
               | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
               | selectattr('state', 'eq', 'on')
-              | map(attribute="attributes.friendly_name", default="Unknown")
+              | map(attribute="entity_id", default="Unknown")
               | list }}
+          source_entity_id: "{{ this.entity_id }}"
           title: 💧 Leak Detected
           message: >
-            {% set devices = this.attributes.get('devices', []) %}
-            {% set devices_count = devices | count %}
-            {% set devices_first = devices | first %}
-            {% if devices_count == 0 %}All detectors dry
-            {% elif devices_count == 1 %}{{ devices_first }} is wet
-            {%- else -%}{{ devices_first }} and {{ devices_count - 1 }} others are wet
-            {%- endif -%}
+            {% set entities = this.attributes.get('entities', []) %}
+            {% set entity_count = entities | count %}
+            {% set entity_first = entities | first %}
+            {% if entity_count == 0 %}All sensors dry
+            {% elif entity_count == 1 %}{{ entity_first }} is {{ states(entity_first, rounded=True, with_unit=True) }}
+            {% else %}{{ entity_first }} ({{ states(entity_first, rounded=True, with_unit=True) }}) and {{ entity_count - 1 }} others are wet
+            {% endif %}
 
 #
 # Alerts

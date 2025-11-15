@@ -9,6 +9,8 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: area/theater
+      ety: &entity
+        entity_monitor: on
 
     #
     # Programmatic entities defined in this package
@@ -30,16 +32,11 @@ homeassistant:
     # Sensors needed to function
     #
     media_player.home_theater:
-      <<: *package
-      friendly_name: Theater AppleTV
-
+      <<: *entity
     light.theater_main_lights:
-      <<: *package
-      friendly_name: Theater Lights
-
+      <<: *entity
     light.theater_sconces:
-      <<: *package
-      friendly_name: Theater Decor Lighting
+      <<: *entity
 
 #
 # Scenes

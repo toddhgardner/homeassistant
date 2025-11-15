@@ -1,0 +1,100 @@
+# Entity Monitor
+# System
+#
+# Monitor the availability of entities critical to defined automations and alerts.
+---
+#
+# Device Configuration
+#
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: system/device_monitoring
+
+    #
+    # Programmatic entities defined in this package
+    #
+    alert.p2_device_status:
+      <<: *package
+    binary_sensor.p2_device_status_trigger:
+      <<: *package
+    input_select.test_status:
+      <<: *package
+
+    sensor.test_entity_availability:
+      entity_monitor: on
+
+#
+# Toggle Test Sensor
+#
+input_boolean:
+  test_entity_availability:
+    initial: off
+
+template:
+
+  #
+  # Test Sensor
+  #
+  - sensor:
+    - name: test_entity_availability
+      state: on
+      availability: >
+        {{ is_state("input_boolean.test_entity_availability", "off") }}
+
+  #
+  # Alert Triggers
+  #
+  - binary_sensor:
+    - name: p2_entity_availability_trigger
+      state: "{{ this.attributes.get('entities', []) | count > 0 }}"
+      delay_on:
+        minutes: 5
+      attributes:
+        device_class: problem
+        entities: >
+          {{ states
+            | selectattr('attributes.entity_monitor', 'defined')
+            | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
+            | map(attribute="entity_id", default="Unknown")
+            | list }}
+        source_entity_id: "{{ this.entity_id }}"
+        title: 🛜 Entity unavailable
+        message: >
+          {% set entities = this.attributes.get('entities', []) %}
+          {% set entity_count = entities | count %}
+          {% set entity_first = entities | first %}
+          {% if entity_count == 0 %}All entities available
+          {% elif entity_count == 1 %}{{ entity_first }} is unavailable
+          {%- else -%}{{ entity_first }} and {{ entity_count - 1 }} others are unavailable
+          {%- endif -%}
+
+#
+# Alerts
+#
+alert:
+
+  p2_entity_availability:
+    name: Device Status Warning
+    entity_id: binary_sensor.p2_entity_availability_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_warning
+    repeat:
+      - 60
+      - 120
+    title: "{{ state_attr('binary_sensor.p2_entity_availability_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p2_entity_availability_trigger', 'message') }}"
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p2_entity_availability_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_entity_availability
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-system/alerts"
+      actions:
+        - action: alert.p2_entity_availability.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"

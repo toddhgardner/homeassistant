@@ -1,8 +1,9 @@
-# Device Battery
+# Battery Monitor
 # System
 #
 # Monitor the status of device batteries
 ---
+
 #
 # Device Configuration
 #
@@ -10,91 +11,58 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: system/device_battery
-      bat: &battery
-        device_monitoring: true
-        battery_monitoring: true
+        package: system/battery_monitor
+      ety: &entity
+        entity_monitor: on
+        battery_monitor: on
 
     #
     # Programmatic entities defined in this package
     #
     alert.p2_device_battery:
       <<: *package
-
     binary_sensor.p2_device_battery_trigger:
       <<: *package
-
     sensor.test_battery:
       <<: *package
-      battery_monitoring: true
-      friendly_name: Test Battery
 
     input_number.test_battery:
       <<: *package
-      friendly_name: Test Battery
 
     #
     # Sensors needed to function
     #
     sensor.basement_bath_leak_battery:
-      <<: *battery
-      friendly_name: Basement Bath Leak Battery
-
+      <<: *entity
     sensor.garage_freezer_monitor_battery:
-      <<: *battery
-      friendly_name: Garage Freezer Monitor Battery
-
+      <<: *entity
     sensor.guest_bath_leak_battery:
-      <<: *battery
-      friendly_name: Guest Bath Leak Battery
-
+      <<: *entity
     sensor.half_bath_leak_battery:
-      <<: *battery
-      friendly_name: Half Bath Leak Battery
-
+      <<: *entity
     sensor.kitchen_dishwasher_leak_battery:
-      <<: *battery
-      friendly_name: Kitchen Dishwasher Leak Battery
-
+      <<: *entity
     sensor.kitchen_pantry_door_battery:
-      <<: *battery
-      friendly_name: Kitchen Pantry Door Battery
-
+      <<: *entity
     sensor.kitchen_refrigerator_leak_battery:
-      <<: *battery
-      friendly_name: Kitchen Refrigerator Leak Battery
-
+      <<: *entity
     sensor.kitchen_sink_leak_battery:
-      <<: *battery
-      friendly_name: Kitchen Sink Leak Battery
-
+      <<: *entity
     sensor.laundry_leak_battery:
-      <<: *battery
-      friendly_name: Laundry Leak Battery
-
+      <<: *entity
     sensor.mudroom_closet_door_battery:
-      <<: *battery
-      friendly_name: Mudroom Closet Door Battery
-
+      <<: *entity
     sensor.primary_bath_toilet_leak_battery:
-      <<: *battery
-      friendly_name: Primary Bath Toilet Leak
-
+      <<: *entity
     sensor.primary_bath_tub_leak_battery:
-      <<: *battery
-      friendly_name: Primary Bath Tub Leak
-
+      <<: *entity
     sensor.suite_bath_leak_battery:
-      <<: *battery
-      friendly_name: Suite Bath Leak
-
+      <<: *entity
     sensor.utility_drain_leak_battery:
-      <<: *battery
-      friendly_name: Utility Drain Leak Battery
-
+      <<: *entity
 
 #
-# Test Sensor
+# Toggle Test Sensor
 #
 input_number:
   test_battery:
@@ -107,39 +75,44 @@ input_number:
 #
 template:
 
+  #
+  # Test Sensor
+  #
   - sensor:
       - name: test_battery
         state: "{{ states('input_number.test_battery') }}"
-        device_class: battery
-        unit_of_measurement: "%"
+        attributes:
+          battery_monitor: on
+          device_class: battery
+          unit_of_measurement: "%"
 
   - binary_sensor:
       - name: p2_device_battery_trigger
-        state: "{{ this.attributes.devices | count > 0 }}"
+        state: "{{ this.attributes.get('entities', []) | count > 0 }}"
         attributes:
-          source_entity_id: "binary_sensor.p2_device_battery_trigger" # self
-          devices: >
-            {% set ns = namespace(batteries=[]) %}
+          device_class: problem
+          source_entity_id: "{{ this.entity_id }}"
+          entities: >
+            {% set ns = namespace(entities=[]) %}
             {% for entity in states.sensor
-              | selectattr('attributes.battery_monitoring', 'defined')
+              | selectattr('attributes.battery_monitor', 'defined')
               | selectattr('attributes.device_class', 'eq', 'battery')
               | rejectattr('state', 'in', ['unknown', 'unavailable', 'none']) %}
-              {% if entity.state | int(-1) <= 20 and entity.state | int(-1) >= 0 %}
-                {% set ns.batteries = ns.batteries + [{
-                  'name': entity.attributes.friendly_name | default('Unknown'),
-                  'battery': entity.state
-                }] %}
-              {% endif %}
+                {% set battery_level = states(entity.entity_id) | int(100) %}
+                {% if battery_level <= 20 %}
+                  {% set ns.entities = ns.entities + [entity.entity_id] %}
+                {% endif %}
             {% endfor %}
-            {{ ns.batteries }}
+            {{ ns.entities }}
           title: 🪫 Device battery low
           message: >
-            {% set devices = this.attributes.devices %}
-            {% set devices_count = devices | count %}
-            {% if devices_count == 0 %}All sensors powered
-            {% elif devices_count == 1 %}{{ devices[0].name }} at {{ devices[0].battery }}%
-            {%- else -%}{{ devices[0].name }} ({{ devices[0].battery }}%) and {{ devices_count - 1 }} others have low battery
-            {%- endif -%}
+            {% set entities = this.attributes.get('entities', []) %}
+            {% set entity_count = entities | count %}
+            {% set entity_first = entities | first %}
+            {% if entity_count == 0 %}All sensors powered
+            {% elif entity_count == 1 %}{{ entity_first }} is {{ states(entity_first, rounded=True, with_unit=True) }}
+            {% else %}{{ entity_first }} ({{ states(entity_first, rounded=True, with_unit=True) }}) and {{ entity_count - 1 }} others have low battery
+            {% endif %}
 
 #
 # Alerts
@@ -153,8 +126,8 @@ alert:
     skip_first: false
     notifiers: p2_warning
     repeat:
+      - 60
       - 120
-      - 240
     title: "{{ state_attr('binary_sensor.p2_device_battery_trigger', 'title') }}"
     message: "{{ state_attr('binary_sensor.p2_device_battery_trigger', 'message') }}"
     done_message: >

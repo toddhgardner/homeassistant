@@ -9,6 +9,8 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: area/mudroom
+      ety: &entity
+        entity_monitor: on
 
     #
     # Programmatic entities defined in this package
@@ -20,12 +22,9 @@ homeassistant:
     # Sensors needed to function
     #
     binary_sensor.mudroom_closet_door:
-      device_monitoring: true
-      friendly_name: Mudroom Closet Door
-
+      <<: *entity
     switch.mudroom_closet_light_switch:
-      device_monitoring: true
-      friendly_name: Mudroom Closet Lights
+      <<: *entity
 
 #
 # Automations
