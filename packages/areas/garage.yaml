@@ -34,9 +34,17 @@ homeassistant:
     #
     binary_sensor.alarm_panel_garage_door:
       <<: *entity
+    binary_sensor.garage_double_obstruction:
+      <<: *entity
+    binary_sensor.garage_single_obstruction:
+      <<: *entity
     cover.garage_double_garage_door:
       <<: *entity
+    cover.garage_single_garage_door:
+      <<: *entity
     lock.garage_double_lock:
+      <<: *entity
+    lock.lock.garage_single_lock:
       <<: *entity
     switch.garage_lights:
       <<: *entity
@@ -44,6 +52,7 @@ homeassistant:
       <<: *entity
     sensor.garage_freezer_monitor_temperature:
       <<: *entity
+
 
 #
 # Automations
@@ -59,14 +68,55 @@ automation:
         to: "open"
         for:
           minutes: 10
+      - trigger: state # Obstruction detected - restarts the automation
+        entity_id: binary_sensor.garage_double_obstruction
+        to: "on"
+      - trigger: state
+        entity_id: binary_sensor.garage_double_obstruction
+        to: "off"
+        for:
+          minutes: 10
     conditions:
       - condition: state
         entity_id: lock.garage_double_lock
         state: "unlocked"
+      - condition: state
+        entity_id: binary_sensor.garage_double_obstruction
+        state: "off"
     actions:
       - action: cover.close_cover
         target:
           entity_id: cover.garage_double_garage_door
+    mode: restart
+
+  - id: garage_single_auto_close
+    alias: Garage Single Auto Close
+    description: "Close single garage door if left open for 10 minutes."
+    triggers:
+      - trigger: state
+        entity_id: cover.garage_single_garage_door
+        to: "open"
+        for:
+          minutes: 10
+      - trigger: state # Obstruction detected - restarts the automation
+        entity_id: binary_sensor.garage_single_obstruction
+        to: "on"
+      - trigger: state
+        entity_id: binary_sensor.garage_single_obstruction
+        to: "off"
+        for:
+          minutes: 10
+    conditions:
+      - condition: state
+        entity_id: lock.garage_single_lock
+        state: "unlocked"
+      - condition: state
+        entity_id: binary_sensor.garage_single_obstruction
+        state: "off"
+    actions:
+      - action: cover.close_cover
+        target:
+          entity_id: cover.garage_single_garage_door
     mode: restart
 
   - id: garage_auto_lights
@@ -77,6 +127,7 @@ automation:
         trigger_sensors:
           - binary_sensor.alarm_panel_garage_door
           - cover.garage_double_garage_door
+          - cover.garage_single_garage_door
         target_lights: switch.garage_lights
         off_delay: 2
         off_idle_delay: 10
@@ -97,9 +148,22 @@ template:
         attributes:
           device_class: problem
           source_entity_id: cover.garage_double_garage_door
-          title: 🚗 Garage Door Open
+          title: 🚗 Garage Door Open (Double)
           message: >
             Open since {{ as_local(states.cover.garage_double_garage_door.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+
+      - name: p2_garage_single_open_trigger
+        state: "{{ is_state('cover.garage_single_garage_door', 'open') }}"
+        availability: >
+          {{ not is_state("cover.garage_single_garage_door", ['unavailable', 'unknown', 'none']) }}
+        delay_on:
+          minutes: 60
+        attributes:
+          device_class: problem
+          source_entity_id: cover.garage_single_garage_door
+          title: 🚗 Garage Door Open (Single)
+          message: >
+            Open since {{ as_local(states.cover.garage_single_garage_door.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
 
       - name: p2_garage_freezer_temp_trigger
         state: >
@@ -142,6 +206,30 @@ alert:
       url: "/1-system/alerts"
       actions:
         - action: alert.p2_garage_double_open.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"
+
+  p2_garage_single_open:
+    name: Garage Single Door Open
+    entity_id: binary_sensor.p2_garage_single_open_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_warning
+    repeat:
+      - 60
+      - 120
+    title: "{{ state_attr('binary_sensor.p2_garage_single_open_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p2_garage_single_open_trigger', 'message') }}"
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p2_garage_single_open_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_garage_single_open
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-system/alerts"
+      actions:
+        - action: alert.p2_garage_single_open.mute
           title: "Mute"
           icon: "sfsymbols:bell.slash"
 
