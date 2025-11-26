@@ -1,0 +1,84 @@
+# Auto Cover Close
+# Blueprint
+#
+# Closes a cover (garage door) automatically after it's been open for X minutes
+---
+
+blueprint:
+  name: Auto Cover Close
+  description: >
+    Automatically close a cover after it has been open for X minutes.
+  domain: automation
+  input:
+
+    target:
+      name: Cover
+      description: Cover to close
+      selector:
+        entity:
+          domain: cover
+          device_class: garage
+
+    target_lock:
+      name: Lock
+      description: Lock for the cover
+      selector:
+        entity:
+          domain: lock
+
+    target_obstruction:
+      name: Obstruction
+      description: Obstruction sensor for the cover
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: problem
+
+    close_delay:
+      name: Close Delay
+      description: Time to wait before closing the cover
+      default: 10
+      selector:
+        number:
+          min: 0
+          max: 300
+          unit_of_measurement: minutes
+          mode: box
+
+mode: restart
+
+triggers:
+
+  - platform: state
+    entity_id: !input target
+    to: "open"
+    for:
+      minutes: !input close_delay
+
+  - platform: state
+    entity_id: !input target_obstruction
+    to: "off"
+    for:
+      minutes: !input close_delay
+
+  # Obstruction detected, restart the automation, but it wont finish unless the
+  # obstruction clears.
+  - platform: state
+    entity_id: !input target_obstruction
+    to: "on"
+
+conditions:
+
+  - condition: state
+    entity_id: !input target_lock
+    state: "unlocked"
+
+  - condition: state
+    entity_id: !input target_obstruction
+    state: "off"
+
+actions:
+
+  - action: cover.close_cover
+    target:
+      entity_id: !input target

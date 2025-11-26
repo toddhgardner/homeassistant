@@ -12,8 +12,6 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: system/heartbeat
-      ety: &entity
-        entity_monitor: on
 
     #
     # Programmatic entities defined in this package
@@ -28,14 +26,6 @@ homeassistant:
       <<: *package
     rest_command.send_heartbeat:
       <<: *package
-
-    #
-    # Sensors needed to function
-    #
-    sensor.ha_uptime:
-      <<: *entity
-    sensor.status_toddhgardner_com_round_trip_time_average:
-      <<: *entity
 
 #
 # Send Heartbeat REST request to status.toddhgardner.com
@@ -69,7 +59,7 @@ automation:
       - action: rest_command.send_heartbeat
         data:
           status: "up"
-          msg: "uptime: {{ relative_time(as_datetime(states('sensor.ha_uptime'))) }}"
+          msg: "uptime: {{ relative_time(as_datetime(states('sensor.uptime'))) }}"
           ping: "{{ states('sensor.status_toddhgardner_com_round_trip_time_average') }}"
         response_variable: heartbeat_result
       - if:
@@ -86,19 +76,26 @@ automation:
 # Alert Trigger
 #
 template:
-
   - binary_sensor:
       - name: p2_heartbeat_trigger
         state: >
           {{ now().timestamp() - state_attr('input_datetime.last_successful_heartbeat', 'timestamp') > 300 }}
+        availability: >
+          {{ states
+            | selectattr('entity_id', 'in', [
+              'input_datetime.last_successful_heartbeat',
+              'sensor.status_toddhgardner_com_round_trip_time_average',
+              'sensor.uptime'])
+            | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+            | list | count == 3 }}
         attributes:
           device_class: problem
           source_entity_id: "input_datetime.last_successful_heartbeat"
           title: 💔 No heartbeat
           message: >
             {% if this.state %}No heartbeat since {{ as_datetime(state_attr('input_datetime.last_successful_heartbeat', 'timestamp')).strftime('%a %b %-d, %-I:%M %p') }}
-            {%- else -%}Heartbeat recovered
-            {%- endif -%}
+            {% else %}Heartbeat recovered
+            {% endif %}
 
 #
 # Alerts
@@ -111,13 +108,11 @@ alert:
     can_acknowledge: true
     skip_first: false
     notifiers: p2_warning
-    repeat:
-      - 60
-      - 120
+    repeat: 60
     title: "{{ state_attr('binary_sensor.p2_heartbeat_trigger', 'title') }}"
     message: "{{ state_attr('binary_sensor.p2_heartbeat_trigger', 'message') }}"
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p2_device_status_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p2_heartbeat_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_heartbeat
       subtitle: Lavender Circle

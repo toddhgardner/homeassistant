@@ -20,7 +20,6 @@ blueprint:
           domain:
             - switch
             - light
-          multiple: false
 
     linked_entities:
       name: Linked Entities
@@ -34,7 +33,7 @@ blueprint:
 
 mode: single
 
-trigger:
+triggers:
   - platform: state
     entity_id: !input source_switch
     to: "off"
@@ -45,9 +44,9 @@ trigger:
     to: "on"
     id: switch_on
 
-condition: []
+conditions: []
 
-action:
+actions:
   - choose:
       - conditions:
           - condition: trigger

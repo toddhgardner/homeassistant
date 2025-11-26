@@ -10,8 +10,6 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: area/garage
-      ety: &entity
-        entity_monitor: on
 
     #
     # Programmatic entities defined in this package
@@ -20,118 +18,10 @@ homeassistant:
       <<: *package
     alert.p2_garage_double_open:
       <<: *package
-    automation.garage_double_auto_close:
-      <<: *package
-    automation.garage_auto_lights:
-      <<: *package
     binary_sensor.p2_garage_freezer_temp_trigger:
       <<: *package
     binary_sensor.p2_garage_double_open_trigger:
       <<: *package
-
-    #
-    # Entities needed to function
-    #
-    binary_sensor.alarm_panel_garage_door:
-      <<: *entity
-    binary_sensor.garage_double_obstruction:
-      <<: *entity
-    binary_sensor.garage_single_obstruction:
-      <<: *entity
-    cover.garage_double_garage_door:
-      <<: *entity
-    cover.garage_single_garage_door:
-      <<: *entity
-    lock.garage_double_lock:
-      <<: *entity
-    lock.lock.garage_single_lock:
-      <<: *entity
-    switch.garage_lights:
-      <<: *entity
-    switch.outside_garage_lights:
-      <<: *entity
-    sensor.garage_freezer_monitor_temperature:
-      <<: *entity
-
-
-#
-# Automations
-#
-automation:
-
-  - id: garage_double_auto_close
-    alias: Garage Double Auto Close
-    description: "Close double garage door if left open for 10 minutes."
-    triggers:
-      - trigger: state
-        entity_id: cover.garage_double_garage_door
-        to: "open"
-        for:
-          minutes: 10
-      - trigger: state # Obstruction detected - restarts the automation
-        entity_id: binary_sensor.garage_double_obstruction
-        to: "on"
-      - trigger: state
-        entity_id: binary_sensor.garage_double_obstruction
-        to: "off"
-        for:
-          minutes: 10
-    conditions:
-      - condition: state
-        entity_id: lock.garage_double_lock
-        state: "unlocked"
-      - condition: state
-        entity_id: binary_sensor.garage_double_obstruction
-        state: "off"
-    actions:
-      - action: cover.close_cover
-        target:
-          entity_id: cover.garage_double_garage_door
-    mode: restart
-
-  - id: garage_single_auto_close
-    alias: Garage Single Auto Close
-    description: "Close single garage door if left open for 10 minutes."
-    triggers:
-      - trigger: state
-        entity_id: cover.garage_single_garage_door
-        to: "open"
-        for:
-          minutes: 10
-      - trigger: state # Obstruction detected - restarts the automation
-        entity_id: binary_sensor.garage_single_obstruction
-        to: "on"
-      - trigger: state
-        entity_id: binary_sensor.garage_single_obstruction
-        to: "off"
-        for:
-          minutes: 10
-    conditions:
-      - condition: state
-        entity_id: lock.garage_single_lock
-        state: "unlocked"
-      - condition: state
-        entity_id: binary_sensor.garage_single_obstruction
-        state: "off"
-    actions:
-      - action: cover.close_cover
-        target:
-          entity_id: cover.garage_single_garage_door
-    mode: restart
-
-  - id: garage_auto_lights
-    alias: Garage Auto Lights
-    use_blueprint:
-      path: auto_door_lights.yaml
-      input:
-        trigger_sensors:
-          - binary_sensor.alarm_panel_garage_door
-          - cover.garage_double_garage_door
-          - cover.garage_single_garage_door
-        target_lights: switch.garage_lights
-        off_delay: 2
-        off_idle_delay: 10
-
 
 #
 # Alert Triggers

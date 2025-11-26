@@ -11,118 +11,78 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: general/leak_monitor
-      ety: &entity
-        entity_monitor: on
-        leak_monitor: on
-        show_as: moisture
 
     #
     # Programmatic entities defined in this package
     #
     alert.p1_leak_detector:
       <<: *package
-    binary_sensor.p1_leak_detector_trigger:
+    binary_sensor.p1_leak_monitor_trigger:
       <<: *package
-    input_boolean.test_leak:
-      <<: *package
-    binary_sensor.test_leak:
-      <<: *package
-
-    #
-    # Leak Sensors
-    #
-    binary_sensor.basement_bath_leak:
-      <<: *entity
-    binary_sensor.guest_bath_leak:
-      <<: *entity
-    binary_sensor.half_bath_leak:
-      <<: *entity
-    binary_sensor.kitchen_dishwasher_leak:
-      <<: *entity
-    binary_sensor.kitchen_refrigerator_leak:
-      <<: *entity
-    binary_sensor.kitchen_sink_leak:
-      <<: *entity
-    binary_sensor.laundry_leak:
-      <<: *entity
-    binary_sensor.primary_bath_toilet_leak:
-      <<: *entity
-    binary_sensor.primary_bath_tub_leak:
-      <<: *entity
-    binary_sensor.suite_bath_leak:
-      <<: *entity
-    binary_sensor.utility_drain_leak:
-      <<: *entity
-#
-# Toggle Test Sensor
-#
-input_boolean:
-  test_leak:
-    initial: off
 
 template:
   - binary_sensor:
 
       #
-      # Test Sensor
+      # Leak Alert Trigger
       #
-      - name: test_leak
-        state: "{{ states('input_boolean.test_leak') }}"
-        attributes:
-          device_class: moisture
-          leak_monitor: on
-
-      #
-      # Alert Triggers
-      #
-      - name: p1_leak_detector_trigger
+      - name: p1_leak_monitor_trigger
         state: "{{ this.attributes.get('entities', []) | count > 0 }}"
+        availability: >
+          {% from 'labeled_all_entities.jinja' import labeled_all_entities %}
+          {% set all_entities = labeled_all_entities('Leak', as_array) %}
+          {{ states
+            | selectattr('entity_id', 'in', all_entities)
+            | selectattr('attributes.device_class', 'eq', 'moisture')
+            | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+            | list | count > 0 }}
         attributes:
+          device_class: problem
           entities: >
+            {% set labeled_entities = label_entities('Leak') | list %}
             {{ states.binary_sensor
-              | selectattr('attributes.leak_monitoring', 'defined')
+              | selectattr('entity_id', 'in', labeled_entities)
               | selectattr('attributes.device_class', 'eq', 'moisture')
               | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
               | selectattr('state', 'eq', 'on')
               | map(attribute="entity_id", default="Unknown")
               | list }}
-          source_entity_id: "{{ this.entity_id }}"
-          title: 💧 Leak Detected
           message: >
             {% set entities = this.attributes.get('entities', []) %}
             {% set entity_count = entities | count %}
-            {% set entity_first = entities | first %}
+            {% set entity_first = entities | first | default('') %}
             {% if entity_count == 0 %}All sensors dry
-            {% elif entity_count == 1 %}{{ entity_first }} is {{ states(entity_first, rounded=True, with_unit=True) }}
-            {% else %}{{ entity_first }} ({{ states(entity_first, rounded=True, with_unit=True) }}) and {{ entity_count - 1 }} others are wet
+            {% elif entity_count == 1 %}{{ state_attr(entity_first, 'friendly_name') }} is {{ states(entity_first, rounded=True, with_unit=True) }}
+            {% else %}{{ state_attr(entity_first, 'friendly_name') }} ({{ states(entity_first, rounded=True, with_unit=True) }}) and {{ entity_count - 1 }} others are wet
             {% endif %}
+          source_entity_id: "{{ this.entity_id }}"
+          title: 💧 Leak Detected
 
 #
 # Alerts
 #
 alert:
-  p1_leak_detector:
-    name: Leak Detector Alarm
-    entity_id: binary_sensor.p1_leak_detector_trigger
+
+  p1_leak_monitor:
+    name: Leak Monitor Alarm
+    entity_id: binary_sensor.p1_leak_monitor_trigger
     state: "on"
     can_acknowledge: true
     skip_first: false
     notifiers: p1_critical
-    repeat:
-      - 30
-      - 60
-    title: "{{ state_attr('binary_sensor.p1_leak_detector_trigger', 'title') }}"
-    message: "{{ state_attr('binary_sensor.p1_leak_detector_trigger', 'message') }}"
+    repeat: 30
+    title: "{{ state_attr('binary_sensor.p1_leak_monitor_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p1_leak_monitor_trigger', 'message') }}"
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p1_leak_detector_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p1_leak_monitor_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
-      tag: p1_leak_detector
+      tag: p1_leak_monitor
       subtitle: Lavender Circle
       group: ha
       url: "/1-system/alerts"
       push:
         interruption-level: critical
       actions:
-        - action: alert.p1_leak_detector.mute
+        - action: alert.p1_leak_monitor.mute
           title: "Mute"
           icon: "sfsymbols:bell.slash"

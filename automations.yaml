@@ -56,3 +56,117 @@
     target:
       label_id: exterior_lights
   mode: single
+- id: '1764032833582'
+  alias: Back Office Auto Link Switch
+  description: ''
+  use_blueprint:
+    path: auto_link_switch.yaml
+    input:
+      source_switch: switch.back_office_lightswitch
+      linked_entities:
+      - switch.back_office_wall_lights_outlet
+- id: '1764033059754'
+  alias: Back Patio Auto Link Switch
+  description: ''
+  use_blueprint:
+    path: auto_link_switch.yaml
+    input:
+      source_switch: switch.back_patio_switch
+      linked_entities:
+      - switch.back_patio_string_lights
+- id: '1764043939005'
+  alias: Kitchen Pantry Auto Door Lights
+  description: ''
+  use_blueprint:
+    path: auto_door_lights.yaml
+    input:
+      trigger_sensors:
+      - binary_sensor.kitchen_pantry_door
+      target_lights:
+      - switch.kitchen_pantry_light_switch
+- id: '1764044002889'
+  alias: Mudroom Auto Door Lights
+  description: ''
+  use_blueprint:
+    path: auto_door_lights.yaml
+    input:
+      trigger_sensors:
+      - binary_sensor.mudroom_closet_door
+      target_lights:
+      - switch.mudroom_closet_light_switch
+- id: ups_emergency_shutdown
+  alias: UPS Emergency Shutdown
+  description: Shutdown HA and NAS when UPS battery drops below 20%
+  triggers:
+  - trigger: numeric_state
+    entity_id:
+    - sensor.cyberpower_network_ups_battery_charge
+    below: 20
+  conditions:
+  - condition: template
+    value_template: '{{ ''On Battery'' in states(''sensor.cyberpower_network_ups_status'')
+      }}
+
+      '
+  actions:
+  - action: notify.p1_critical
+    data:
+      title: "\U0001FAAB UPS battery critical - shutting down"
+      message: Battery at {{ states('sensor.cyberpower_network_ups_battery_charge',
+        rounded=True, with_unit=True) }} - Initiating emergency shutdown
+      data:
+        tag: p1_ups_critical
+        subtitle: Lavender Circle
+        group: ha
+        push:
+          interruption-level: critical
+        url: /1-system/alerts
+  - action: synology_dsm.shutdown
+  - delay:
+      seconds: 10
+  - action: hassio.host_shutdown
+  mode: single
+- id: back_patio_auto_heat_mats_off
+  alias: Back Patio Auto Heat Mats Off
+  description: Turn off heat mats automatically
+  triggers:
+  - trigger: state
+    entity_id: switch.back_patio_heat_mats
+    to: 'on'
+    for:
+      minutes: 90
+  actions:
+  - action: switch.turn_off
+    target:
+      entity_id: switch.back_patio_heat_mats
+  mode: single
+- id: '1764180137952'
+  alias: Garage Auto Door Lights
+  description: ''
+  use_blueprint:
+    path: auto_door_lights.yaml
+    input:
+      trigger_sensors:
+      - binary_sensor.alarm_panel_garage_door
+      - cover.garage_single_garage_door
+      - cover.garage_double_garage_door
+      target_lights:
+      - switch.garage_lights
+- id: '1764188190717'
+  alias: Double Garage Auto Cover Close
+  description: ''
+  use_blueprint:
+    path: auto_cover_close.yaml
+    input:
+      target: cover.garage_double_garage_door
+      target_lock: lock.garage_double_lock
+      target_obstruction: binary_sensor.garage_double_obstruction
+- id: '1764188222075'
+  alias: Single Garage Auto Cover Close
+  description: ''
+  use_blueprint:
+    path: auto_cover_close.yaml
+    input:
+      target: cover.garage_single_garage_door
+      target_lock: lock.garage_single_lock
+      target_obstruction: binary_sensor.garage_single_obstruction

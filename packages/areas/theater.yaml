@@ -90,6 +90,7 @@ automation:
           seconds: 2
       - trigger: state
         entity_id: media_player.home_theater
+        not_from: "unknown" # so lights dont come on when it disconnects or reboots
         to: "idle"
         for:
           seconds: 2

@@ -1,0 +1,8 @@
+{% macro labeled_all_entities(label_name_or_id, returns) %}
+  {% set labeled_entities = label_entities(label_name_or_id) | list %}
+  {% set labeled_device_entities = label_devices(label_name_or_id)
+    | map('device_entities')
+    | sum(start=[])
+    | list %}
+  {{ (labeled_entities + labeled_device_entities) | unique | list }}
+{% endmacro %}

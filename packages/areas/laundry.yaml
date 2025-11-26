@@ -1,0 +1,37 @@
+# Laundry
+# Area
+---
+#
+# Device Configuration
+#
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: area/laundry
+      ety: &entity
+        entity_monitor: on
+
+    #
+    # Programmatic entities defined in this package
+    #
+    binary_sensor.washing_machine:
+      <<: *package
+
+    #
+    # Sensors needed to function
+    #
+    sensor.laundry_washer_outlet_power:
+      <<: *entity
+
+template:
+  binary_sensor:
+    - name: washing_machine
+      state: >
+        {{ states('sensor.laundry_washer_outlet_power') | float(0) > 2 }}
+      icon: >
+        {% if this.state %}mdi:washing-machine
+        {% else %}mdi:washing-machine-off
+        {% endif %}
+      attributes:
+        device_class: running

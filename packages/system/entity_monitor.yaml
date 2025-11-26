@@ -10,65 +10,100 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: system/device_monitoring
+        package: system/entity_monitor
 
     #
     # Programmatic entities defined in this package
     #
-    alert.p2_device_status:
+    alert.p2_entity_availability:
       <<: *package
-    binary_sensor.p2_device_status_trigger:
+    alert.p2_entity_battery:
       <<: *package
-    input_select.test_status:
+    binary_sensor.p2_entity_availability_trigger:
       <<: *package
-
-    sensor.test_entity_availability:
-      entity_monitor: on
-
-#
-# Toggle Test Sensor
-#
-input_boolean:
-  test_entity_availability:
-    initial: off
+    binary_sensor.p2_entity_battery_trigger:
+      <<: *package
 
 template:
-
-  #
-  # Test Sensor
-  #
-  - sensor:
-    - name: test_entity_availability
-      state: on
-      availability: >
-        {{ is_state("input_boolean.test_entity_availability", "off") }}
-
-  #
-  # Alert Triggers
-  #
   - binary_sensor:
+
+    #
+    # Entity Availability Trigger
+    # Monitors all devices and entities labeld "Essential"
+    #
     - name: p2_entity_availability_trigger
       state: "{{ this.attributes.get('entities', []) | count > 0 }}"
       delay_on:
         minutes: 5
+      availability: >
+        {% from 'labeled_all_entities.jinja' import labeled_all_entities %}
+        {% set all_entities = labeled_all_entities('Essential', as_array) %}
+        {{ states
+          | selectattr('entity_id', 'in', all_entities)
+          | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+          | list | count > 0 }}
       attributes:
         device_class: problem
         entities: >
+          {% from 'labeled_all_entities.jinja' import labeled_all_entities %}
+          {% set all_entities = labeled_all_entities('Essential', as_array) %}
           {{ states
-            | selectattr('attributes.entity_monitor', 'defined')
+            | selectattr('entity_id', 'in', all_entities)
+            | rejectattr('domain', 'in', ['button', 'update'])
             | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
             | map(attribute="entity_id", default="Unknown")
             | list }}
-        source_entity_id: "{{ this.entity_id }}"
-        title: 🛜 Entity unavailable
         message: >
           {% set entities = this.attributes.get('entities', []) %}
           {% set entity_count = entities | count %}
-          {% set entity_first = entities | first %}
+          {% set entity_first = state_attr(entities | first | default(''), 'friendly_name') %}
           {% if entity_count == 0 %}All entities available
           {% elif entity_count == 1 %}{{ entity_first }} is unavailable
-          {%- else -%}{{ entity_first }} and {{ entity_count - 1 }} others are unavailable
-          {%- endif -%}
+          {% else %}{{ entity_first }} and {{ entity_count - 1 }} others are unavailable
+          {% endif %}
+        source_entity_id: "{{ this.entity_id }}"
+        title: 🛜 Entity unavailable
+
+    #
+    # Entity Battery Trigger
+    # Monitors all devices and entities labeld "Essential" for battery
+    #
+    - name: p2_entity_battery_trigger
+      state: "{{ this.attributes.get('entities', []) | count > 0 }}"
+      availability: >
+        {% from 'labeled_all_entities.jinja' import labeled_all_entities %}
+        {% set all_entities = labeled_all_entities('Essential', as_array) %}
+        {{ states
+          | selectattr('entity_id', 'in', all_entities)
+          | selectattr('attributes.device_class', 'eq', 'battery')
+          | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+          | list | count > 0 }}
+      attributes:
+        device_class: problem
+        entities: >
+          {% from 'labeled_all_entities.jinja' import labeled_all_entities %}
+          {% set all_entities = labeled_all_entities('Essential', as_array) %}
+          {% set ns = namespace(entities=[]) %}
+          {% for entity in states.sensor
+            | selectattr('entity_id', 'in', all_entities)
+            | selectattr('attributes.device_class', 'eq', 'battery')
+            | rejectattr('state', 'in', ['unknown', 'unavailable', 'none']) %}
+              {% set battery_level = states(entity.entity_id) | int(100) %}
+              {% if battery_level <= 20 %}
+                {% set ns.entities = ns.entities + [entity.entity_id] %}
+              {% endif %}
+          {% endfor %}
+          {{ ns.entities }}
+        message: >
+          {% set entities = this.attributes.get('entities', []) %}
+          {% set entity_count = entities | count %}
+          {% set entity_first = entities | first | default('') %}
+          {% if entity_count == 0 %}All sensors powered
+          {% elif entity_count == 1 %}{{ state_attr(entity_first, 'friendly_name') }} is {{ states(entity_first, rounded=True, with_unit=True) }}
+          {% else %}{{ state_attr(entity_first, 'friendly_name') }} ({{ states(entity_first, rounded=True, with_unit=True) }}) and {{ entity_count - 1 }} others have low battery
+          {% endif %}
+        source_entity_id: "{{ this.entity_id }}"
+        title: 🪫 Device battery low
 
 #
 # Alerts
@@ -76,15 +111,13 @@ template:
 alert:
 
   p2_entity_availability:
-    name: Device Status Warning
+    name: Entity Availability Warning
     entity_id: binary_sensor.p2_entity_availability_trigger
     state: "on"
     can_acknowledge: true
     skip_first: false
     notifiers: p2_warning
-    repeat:
-      - 60
-      - 120
+    repeat: 60
     title: "{{ state_attr('binary_sensor.p2_entity_availability_trigger', 'title') }}"
     message: "{{ state_attr('binary_sensor.p2_entity_availability_trigger', 'message') }}"
     done_message: >
@@ -96,5 +129,27 @@ alert:
       url: "/1-system/alerts"
       actions:
         - action: alert.p2_entity_availability.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"
+
+  p2_entity_battery:
+    name: Entity Battery Warning
+    entity_id: binary_sensor.p2_entity_battery_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_warning
+    repeat: 60
+    title: "{{ state_attr('binary_sensor.p2_entity_battery_trigger', 'title') }}"
+    message: "{{ state_attr('binary_sensor.p2_entity_battery_trigger', 'message') }}"
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p2_entity_battery_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_entity_battery
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-system/alerts"
+      actions:
+        - action: alert.p2_entity_battery.mute
           title: "Mute"
           icon: "sfsymbols:bell.slash"

@@ -12,8 +12,6 @@ homeassistant:
     package.node_anchors:
       pkg: &package
         package: system/system_monitor
-      ety: &entity
-        entity_monitor: on
 
     #
     # Programmatic entities defined in this package
@@ -27,59 +25,66 @@ homeassistant:
     binary_sensor.p2_system_monitor_trigger:
       <<: *package
 
-    #
-    # Sensors needed to function
-    #
-    sensor.system_monitor_disk_usage:
-      <<: *entity
-    sensor.system_monitor_memory_usage:
-      <<: *entity
-    sensor.system_monitor_processor_temperature:
-      <<: *entity
-    sensor.system_monitor_processor_use:
-      <<: *entity
-
-#
-# Alert Triggers
-#
 template:
   - binary_sensor:
 
+    #
+    # Monitor the state of home assistant itself.
+    #
     - name: p2_system_monitor_trigger
       state: "{{ this.attributes.get('entities', []) | count > 0 }}"
+      availability: >
+        {{ states.sensor
+          | selectattr('entity_id', 'in', [
+            'sensor.system_monitor_disk_usage',
+            'sensor.system_monitor_memory_usage',
+            'sensor.system_monitor_processor_use',
+            'sensor.system_monitor_processor_temperature'])
+          | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+          | list | count == 4 }}
       attributes:
         device_class: problem
         entities: >
           {% set problems = [] %}
-          {% if states("sensor.system_monitor_disk_usage") | float(0) > 80 %}
+          {% if states("sensor.system_monitor_disk_usage") | float(1000) > 80 %}
             {% set problems = problems + ['sensor.system_monitor_disk_usage'] %}
           {% endif %}
-          {% if states("sensor.system_monitor_memory_usage") | float(0) > 80 %}
+          {% if states("sensor.system_monitor_memory_usage") | float(1000) > 80 %}
             {% set problems = problems + ['sensor.system_monitor_memory_usage'] %}
           {% endif %}
-          {% if states("sensor.system_monitor_processor_use") | float(0) > 80 %}
+          {% if states("sensor.system_monitor_processor_use") | float(1000) > 80 %}
             {% set problems = problems + ['sensor.system_monitor_processor_use'] %}
           {% endif %}
-          {% if states("sensor.system_monitor_processor_temperature") | float(0) > 150 %}
+          {% if states("sensor.system_monitor_processor_temperature") | float(1000) > 150 %}
             {% set problems = problems + ['sensor.system_monitor_processor_temperature'] %}
           {% endif %}
           {{ problems }}
-        source_entity_id: "{{ this.entity_id }}"
-        title: 🖥️ System problem
         message: >
           {% set entities = this.attributes.get('entities', []) %}
           {% set entity_count = entities | count %}
-          {% set entity_first = entities | first %}
+          {% set entity_first = entities | first | default('') %}
           {% if entity_count == 0 %}All entities okay
-          {% elif entity_count == 1 %}{{ entity_first }} is {{ states(entity_first, rounded=True, with_unit=True) }}
-          {%- else -%}{{ entity_first }} and {{ entity_count - 1 }} others are having problems
-          {%- endif -%}
+          {% elif entity_count == 1 %}{{ state_attr(entity_first, 'friendly_name') }} is {{ states(entity_first, rounded=True, with_unit=True) }}
+          {% else %}{{ state_attr(entity_first, 'friendly_name') }} and {{ entity_count - 1 }} others are having problems
+          {% endif %}
+        source_entity_id: "{{ this.entity_id }}"
+        title: 🖥️ System problem
 
+    #
+    # Check that all the system entities (automations, alerts, templates) defined
+    # in packages remain available
+    #
     - name: p2_system_entities_trigger
       state: "{{ this.attributes.get('entities', []) | count > 0 }}"
+      delay_on:
+        minutes: 5
+      availability: >
+        {{ states
+          | selectattr('attributes.package', 'defined')
+          | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+          | list | count > 0 }}
       attributes:
         device_class: problem
-        source_entity_id: "{{ this.entity_id }}"
         entities: >
           {{ states
             | selectattr('attributes.package', 'defined')
@@ -87,16 +92,16 @@ template:
             | rejectattr('entity_id', 'eq', 'binary_sensor.p2_system_entities_trigger')
             | map(attribute="entity_id", default="Unknown")
             | list }}
-        title: ⚙️ Entity unavailable
         message: >
-          {% set devices = this.attributes.get('devices', []) %}
-          {% set devices_count = devices | count %}
-          {% set devices_first = devices | first %}
-          {% if devices_count == 0 %}All entities online
-          {% elif devices_count == 1 %}{{ devices_first }} is unavailable
-          {%- else -%}{{ devices_first }} and {{ devices_count - 1 }} others are unavailable
-          {%- endif -%}
-
+          {% set entities = this.attributes.get('entities', []) %}
+          {% set entity_count = entities | count %}
+          {% set entity_first = entities | first | default('') %}
+          {% if entity_count == 0 %}All entities online
+          {% elif entity_count == 1 %}{{ state_attr(entity_first, 'friendly_name') }} is unavailable
+          {% else %}{{ state_attr(entity_first, 'friendly_name') }} and {{ entity_count - 1 }} others are unavailable
+          {% endif %}
+        title: ⚙️ System Entity unavailable
+        source_entity_id: "{{ this.entity_id }}"
 
 #
 # Alerts
@@ -109,9 +114,7 @@ alert:
     can_acknowledge: true
     skip_first: false
     notifiers: p2_warning
-    repeat:
-      - 60
-      - 120
+    repeat: 60
     title: "{{ state_attr('binary_sensor.p2_system_monitor_trigger', 'title') }}"
     message: "{{ state_attr('binary_sensor.p2_system_monitor_trigger', 'message') }}"
     done_message: >
@@ -133,9 +136,7 @@ alert:
     can_acknowledge: true
     skip_first: false
     notifiers: p2_warning
-    repeat:
-      - 60
-      - 120
+    repeat: 60
     title: "{{ state_attr('binary_sensor.p2_system_entities_trigger', 'title') }}"
     message: "{{ state_attr('binary_sensor.p2_system_entities_trigger', 'message') }}"
     done_message: >

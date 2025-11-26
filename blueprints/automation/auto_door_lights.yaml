@@ -16,13 +16,12 @@ blueprint:
       description: Door or cover sensors that will trigger the lights (garage doors, gates, blinds, etc.)
       selector:
         entity:
-          domain: binary_sensor
+          domain:
+            - binary_sensor
+            - cover
           device_class:
             - door
-            - garage_door
-            - gate
-            - window
-            - opening
+            - garage
           multiple: true
 
     target_lights:
@@ -44,7 +43,7 @@ blueprint:
           min: 0
           max: 300
           unit_of_measurement: minutes
-          mode: slider
+          mode: box
 
     off_idle_delay:
       name: Idle Turn Off Delay
@@ -55,11 +54,12 @@ blueprint:
           min: 0
           max: 300
           unit_of_measurement: minutes
-          mode: slider
+          mode: box
 
 mode: restart
 
-trigger:
+triggers:
+
   - platform: state
     entity_id: !input trigger_sensors
     to:
@@ -84,9 +84,9 @@ trigger:
       minutes: !input off_idle_delay
     id: idle_timeout
 
-condition: []
+conditions: []
 
-action:
+actions:
   - choose:
       - conditions:
           - condition: trigger
