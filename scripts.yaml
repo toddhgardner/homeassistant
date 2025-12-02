@@ -1,0 +1,54 @@
+force_garage_doors_closed:
+  alias: Force Garage Doors Closed
+  use_blueprint:
+    path: homeassistant/confirmable_notification.yaml
+    input:
+      notify_device: 29b1ea7766607bc3fc5b456f2efafd41
+      title: Garage door open
+      confirm_action:
+      - action: lock.unlock
+        metadata: {}
+        data: {}
+        target:
+          device_id:
+          - 467926e27ed161ffcc4dbb4dd31a6658
+          - ab2c394ab61615979a081bf928782ec3
+      - action: cover.close_cover
+        metadata: {}
+        data: {}
+        target:
+          entity_id: cover.garage_doors
+      message: Garage doors have been open for a long time. Hold to force close.
+      confirm_text: Force close
+  description: ''
+  icon: mdi:garage-alert-variant
+notify_home:
+  sequence:
+  - variables:
+      targets:
+      - person: person.todd_gardner
+        notify: notify.mobile_app_todds_iphone
+  - repeat:
+      for_each: '{{ targets }}'
+      sequence:
+      - if:
+        - condition: template
+          value_template: '{{ is_state(repeat.item.person, ''home'') }}'
+        then:
+        - action: '{{ repeat.item.notify }}'
+          data:
+            title: '{{ title }}'
+            message: '{{ message }}'
+  fields:
+    title:
+      selector:
+        text:
+      name: Title
+      required: true
+    message:
+      selector:
+        text:
+      name: Message
+      required: true
+  alias: Notify Home
+  description: ''

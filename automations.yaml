@@ -100,7 +100,7 @@
   triggers:
   - trigger: numeric_state
     entity_id:
-    - sensor.cyberpower_network_ups_battery_charge
+    - sensor.rack_ups_battery_charge
     below: 20
   conditions:
   - condition: template
@@ -131,15 +131,18 @@
   description: Turn off heat mats automatically
   triggers:
   - trigger: state
-    entity_id: switch.back_patio_heat_mats
+    entity_id:
+    - switch.back_patio_heat_mats
     to: 'on'
     for:
-      minutes: 90
+      hours: 3
+      minutes: 0
+      seconds: 0
   actions:
   - action: switch.turn_off
     target:
       entity_id: switch.back_patio_heat_mats
-  mode: single
+  mode: restart
 - id: '1764180137952'
   alias: Garage Auto Door Lights
   description: ''
@@ -170,3 +173,137 @@
       target: cover.garage_single_garage_door
       target_lock: lock.garage_single_lock
       target_obstruction: binary_sensor.garage_single_obstruction
+- id: '1764196300661'
+  alias: Force close idle garage doors
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - cover.garage_doors
+    for:
+      hours: 0
+      minutes: 30
+      seconds: 0
+    to: open
+  conditions: []
+  actions:
+  - repeat:
+      while:
+      - condition: state
+        entity_id: cover.garage_doors
+        state: open
+      sequence:
+      - action: script.force_garage_doors_closed
+        metadata: {}
+        data: {}
+      - delay:
+          hours: 0
+          minutes: 30
+          seconds: 0
+          milliseconds: 0
+  mode: restart
+- id: '1764293728906'
+  alias: Theater Lighting
+  description: ''
+  triggers:
+  - alias: Theater AppleTV is playing
+    trigger: state
+    id: playing
+    entity_id:
+    - media_player.home_theater
+    to: playing
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 2
+  - trigger: state
+    alias: Theater AppleTV is paused/idle
+    id: pause
+    entity_id:
+    - media_player.home_theater
+    to:
+    - paused
+    - idle
+    not_from:
+    - unknown
+    for:
+      seconds: 2
+  - trigger: state
+    alias: Theater AppleTV is off
+    id: standby
+    entity_id:
+    - media_player.home_theater
+    to:
+    - standby
+    - 'off'
+    not_from:
+    - unknown
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id:
+        - playing
+      sequence:
+      - action: scene.turn_on
+        metadata: {}
+        data:
+          transition: 4
+        target:
+          entity_id: scene.theater_lights_playing
+    - conditions:
+      - condition: trigger
+        id:
+        - pause
+      sequence:
+      - action: scene.turn_on
+        metadata: {}
+        data:
+          transition: 4
+        target:
+          entity_id: scene.theater_lights_paused
+    - conditions:
+      - condition: trigger
+        id:
+        - standby
+      sequence:
+      - action: scene.turn_on
+        metadata: {}
+        data:
+          transition: 4
+        target:
+          entity_id: scene.theater_lights_full
+  mode: single
+- id: '1764639787851'
+  alias: Notify Laundry Finished
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.washing_machine_status
+    from: 'on'
+    to: 'off'
+  - trigger: state
+    entity_id:
+    - binary_sensor.dryer_status
+    to: 'off'
+    from: 'on'
+  conditions:
+  - condition: and
+    conditions:
+    - condition: state
+      entity_id: binary_sensor.washing_machine_status
+      state: 'off'
+    - condition: state
+      entity_id: binary_sensor.dryer_status
+      state: 'off'
+  actions:
+  - action: script.notify_home
+    metadata: {}
+    data:
+      title: Laundry finished
+      message: Finished at {{ ([ states.binary_sensor.washing_machine_status.last_changed
+        , states.binary_sensor.dryer_status.last_changed ] | max).strftime('%a %b
+        %-d, %-I:%M %p') }}
+  mode: single

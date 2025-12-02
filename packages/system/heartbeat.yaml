@@ -4,18 +4,12 @@
 # Send heartbeat monitoring request to external service for alerting
 ---
 
-#
-# Device Configuration
-#
 homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
         package: system/heartbeat
 
-    #
-    # Programmatic entities defined in this package
-    #
     alert.p2_heartbeat:
       <<: *package
     automation.heartbeat_auto_send:
@@ -59,25 +53,30 @@ automation:
       - action: rest_command.send_heartbeat
         data:
           status: "up"
-          msg: "uptime: {{ relative_time(as_datetime(states('sensor.uptime'))) }}"
-          ping: "{{ states('sensor.status_toddhgardner_com_round_trip_time_average') }}"
+          msg: >
+            uptime: {{ relative_time(as_datetime(states('sensor.uptime'))) }}
+          ping: >
+            {{ states('sensor.status_toddhgardner_com_round_trip_time_average') }}
         response_variable: heartbeat_result
       - if:
           - condition: template
-            value_template: "{{ heartbeat_result['status'] == 200 }}"
+            value_template: >
+              {{ heartbeat_result['status'] == 200 }}
         then:
           - action: input_datetime.set_datetime
             target:
               entity_id: input_datetime.last_successful_heartbeat
             data:
-              timestamp: "{{ now().timestamp() }}"
+              timestamp: >
+                {{ now().timestamp() }}
 
-#
-# Alert Trigger
-#
 template:
   - binary_sensor:
-      - name: p2_heartbeat_trigger
+
+      #
+      # Alert Trigger
+      #
+      - name: P2 Heartbeat Trigger
         state: >
           {{ now().timestamp() - state_attr('input_datetime.last_successful_heartbeat', 'timestamp') > 300 }}
         availability: >
@@ -97,10 +96,8 @@ template:
             {% else %}Heartbeat recovered
             {% endif %}
 
-#
-# Alerts
-#
 alert:
+
   p2_heartbeat:
     name: Heartbeat Warning
     entity_id: binary_sensor.p2_heartbeat_trigger
@@ -108,9 +105,13 @@ alert:
     can_acknowledge: true
     skip_first: false
     notifiers: p2_warning
-    repeat: 60
-    title: "{{ state_attr('binary_sensor.p2_heartbeat_trigger', 'title') }}"
-    message: "{{ state_attr('binary_sensor.p2_heartbeat_trigger', 'message') }}"
+    repeat:
+      - 60
+      - 1440
+    title: >
+      {{ state_attr('binary_sensor.p2_heartbeat_trigger', 'title') }}
+    message: >
+      {{ state_attr('binary_sensor.p2_heartbeat_trigger', 'message') }}
     done_message: >
       Recovered at {{ as_local(states.binary_sensor.p2_heartbeat_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:

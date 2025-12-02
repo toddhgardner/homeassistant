@@ -1,0 +1,112 @@
+# UPS Monitor
+# General
+#
+# Monitor UPS status and alert when on battery power
+---
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: general/ups_monitor
+
+    alert.p1_ups_unplugged:
+      <<: *package
+    binary_sensor.p1_ups_unplugged_trigger:
+      <<: *package
+
+template:
+  - binary_sensor:
+
+      #
+      # UPS is unplugged on battery power
+      # Label: UPS
+      # Device Class: Plug
+      #
+      - name: P1 UPS Unplugged Trigger
+        state: >
+          {{ this.attributes.get('active_entities', []) | count > 0 }}
+        delay_on:
+          seconds: 30
+        availability: >
+          {% set labeled_entities = label_entities('UPS') %}
+          {{ states.binary_sensor
+            | selectattr('entity_id', 'in', labeled_entities)
+            | selectattr('attributes.device_class', 'eq', 'plug')
+            | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+            | map(attribute='entity_id')
+            | list | count > 0 }}
+        attributes:
+          device_class: problem
+          monitored_entities: >
+            {% set labeled_entities = label_entities('UPS') %}
+            {{ states.binary_sensor
+              | selectattr('entity_id', 'in', labeled_entities)
+              | selectattr('attributes.device_class', 'eq', 'plug')
+              | map(attribute='entity_id')
+              | list }}
+          active_entities: >
+            {% set labeled_entities = label_entities('UPS') %}
+            {{ states.binary_sensor
+              | selectattr('entity_id', 'in', labeled_entities)
+              | selectattr('attributes.device_class', 'eq', 'plug')
+              | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+              | selectattr('state', 'eq', 'off')
+              | map(attribute='entity_id')
+              | list }}
+          title: 🔌 UPS is unplugged
+          message: >
+            {% set active_entities = this.attributes.get('active_entities', []) %}
+            {% set entity_count = active_entities | count %}
+            {% if entity_count == 0 %}
+              All UPS are plugged in.
+            {% else %}
+              {% set entity_first = active_entities | first %}
+              {% set peer_battery = states.sensor
+                | selectattr('entity_id', 'in', device_entities(device_id(entity_first)))
+                | selectattr('attributes.device_class', 'eq', 'battery')
+                | map(attribute='entity_id')
+                | first
+                | default('') %}
+              {% if entity_count == 1 %}
+                {{ state_attr(entity_first, 'friendly_name') }} ({{ states(peer_battery, rounded=True, with_unit=True) }}) is unplugged.
+              {% else %}
+                {{ state_attr(entity_first, 'friendly_name') }} ({{ states(peer_battery, rounded=True, with_unit=True) }}) and {{ entity_count - 1 }} others are unplugged.
+              {% endif %}
+            {% endif %}
+          source_entity_id: >
+            {% set active_entities = this.attributes.get('active_entities', []) %}
+            {% if active_entities | count > 0 %}
+              {{ active_entities | first }}
+            {% else %}
+              {{ this.entity_id }}
+            {% endif %}
+
+alert:
+
+  p1_ups_unplugged:
+    name: UPS Unplugged
+    entity_id: binary_sensor.p1_ups_unplugged_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p1_critical
+    repeat:
+      30
+    title: >
+      {{ state_attr('binary_sensor.p1_ups_unplugged_trigger', 'title') }}
+    message: >
+      {{ state_attr('binary_sensor.p1_ups_unplugged_trigger', 'message') }}
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p1_ups_unplugged_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p1_ups_unplugged
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-system/alerts"
+      push:
+        interruption-level: critical
+      actions:
+        - action: alert.p1_ups_unplugged.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"

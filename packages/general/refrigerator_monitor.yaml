@@ -1,99 +1,99 @@
-# Leak Monitor
+# Refrigerator Monitor
 # General
 #
-# Trigger alerts if any leak sensor goes off.
+# Monitor refrigerator and freezer temperature thresholds and send alerts if they are exceeded.
 ---
 
 homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: general/leak_monitor
+        package: general/refrigerator_monitor
 
-    alert.p1_leak:
+    alert.p1_refrigerator:
       <<: *package
-    binary_sensor.p1_leak_trigger:
+    binary_sensor.p1_refrigerator_trigger:
       <<: *package
+
 
 template:
   - binary_sensor:
 
       #
-      # Leak alert trigger
-      # Label: Leak
-      # Device Class: Moisture
+      # Refrigerator temperature alert trigger
+      # Label: Refrigerator
       #
-      - name: P1 Leak Trigger
+      - name: P1 Refrigerator Trigger
         state: >
           {{ this.attributes.get('active_entities', []) | count > 0 }}
         delay_on:
-          seconds: 10
+          minutes: 60
         availability: >
-          {% set labeled_entities = label_entities('Leak') %}
+          {% set labeled_entities = label_entities('Refrigerator') %}
           {{ states.binary_sensor
             | selectattr('entity_id', 'in', labeled_entities)
-            | selectattr('attributes.device_class', 'eq', 'moisture')
             | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+            | map(attribute='entity_id')
             | list | count > 0 }}
         attributes:
           device_class: problem
           monitored_entities: >
-            {{ label_entities('Leak') }}
+            {{ label_entities('Refrigerator') }}
           active_entities: >
-            {% set labeled_entities = label_entities('Leak') | list %}
+            {% set labeled_entities = label_entities('Refrigerator') | list %}
             {{ states.binary_sensor
               | selectattr('entity_id', 'in', labeled_entities)
-              | selectattr('attributes.device_class', 'eq', 'moisture')
               | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
-              | selectattr('state', 'eq', 'on')
+              | selectattr('state', 'eq', 'off')
               | map(attribute="entity_id")
               | list }}
-          title: 💧 Leak Detected
+          title: ❄️ Refrigerator Temperature Range
           message: >
             {% set active_entities = this.attributes.get('active_entities', []) %}
             {% set entity_count = active_entities | count %}
             {% if entity_count == 0 %}
-              All sensors dry.
+              All refrigerators in range.
             {% else %}
               {% set entity_first = active_entities | first %}
+              {% set entity_source = state_attr(entity_first, 'entity_id') %}
               {% if entity_count == 1 %}
-                {{ state_attr(entity_first, 'friendly_name') }} is {{ states(entity_first, rounded=True, with_unit=True) }}.
+                {{ state_attr(entity_source, 'friendly_name') }} ({{ states(entity_source, rounded=True, with_unit=True) }}) is {{ state_attr(entity_first, 'position') }} its range ({{ state_attr(entity_first, 'lower') }} - {{ state_attr(entity_first, 'upper') }}).
               {% else %}
-                {{ state_attr(entity_first, 'friendly_name') }} and {{ entity_count - 1 }} others are wet.
+                {{ state_attr(entity_source, 'friendly_name') }} ({{ states(entity_source, rounded=True, with_unit=True) }}) and {{ entity_count - 1 }} others are outside their range.
               {% endif %}
             {% endif %}
           source_entity_id: >
             {% set active_entities = this.attributes.get('active_entities', []) %}
             {% if active_entities | count > 0 %}
-              {{ active_entities | first }}
+              {{ state_attr(active_entities | first, 'entity_id') }}
             {% else %}
               {{ this.entity_id }}
             {% endif %}
 
 alert:
 
-  p1_leak:
-    name: Leak
-    entity_id: binary_sensor.p1_leak_trigger
+  p1_refrigerator:
+    name: Refrigerator
+    entity_id: binary_sensor.p1_refrigerator_trigger
     state: "on"
     can_acknowledge: true
     skip_first: false
     notifiers: p1_critical
     repeat: 30
     title: >
-      {{ state_attr('binary_sensor.p1_leak_trigger', 'title') }}
+      {{ state_attr('binary_sensor.p1_refrigerator_trigger', 'title') }}
     message: >
-      {{ state_attr('binary_sensor.p1_leak_trigger', 'message') }}
+      {{ state_attr('binary_sensor.p1_refrigerator_trigger', 'message') }}
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p1_leak_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p1_refrigerator_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
-      tag: p1_leak
+      tag: p1_refrigerator
       subtitle: Lavender Circle
       group: ha
       url: "/1-system/alerts"
       push:
         interruption-level: critical
       actions:
-        - action: alert.p1_leak.mute
+        - action: alert.p1_refrigerator.mute
           title: "Mute"
           icon: "sfsymbols:bell.slash"

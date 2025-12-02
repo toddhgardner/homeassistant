@@ -1,0 +1,103 @@
+# System Usage Monitor
+# General
+#
+# Monitor the health and usage of a monitored computer system.
+---
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: general/system_usage_monitor
+
+    alert.p2_system_usage:
+      <<: *package
+    binary_sensor.p2_system_usage_trigger:
+      <<: *package
+
+template:
+  - binary_sensor:
+
+      #
+      # System usage alert trigger
+      # Label: System Usage
+      # Device Class: Problem
+      #
+      - name: P2 System Usage Trigger
+        state: >
+          {{ this.attributes.get('active_entities', []) | count > 0 }}
+        delay_on:
+          minutes: 1
+        availability: >
+          {% set labeled_entities = label_entities('System Usage') %}
+          {{ states.binary_sensor
+            | selectattr('entity_id', 'in', labeled_entities)
+            | selectattr('attributes.device_class', 'eq', 'problem')
+            | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+            | map(attribute='entity_id')
+            | list | count > 0 }}
+        attributes:
+          device_class: problem
+          monitored_entities: >
+            {{ label_entities('System Usage') }}
+          active_entities: >
+            {% set labeled_entities = label_entities('System Usage') | list %}
+            {{ states.binary_sensor
+              | selectattr('entity_id', 'in', labeled_entities)
+              | selectattr('attributes.device_class', 'eq', 'problem')
+              | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+              | selectattr('state', 'eq', 'on')
+              | map(attribute="entity_id")
+              | list }}
+          title: 🖥️ System usage problem
+          message: >
+            {% set active_entities = this.attributes.get('active_entities', []) %}
+            {% set entity_count = active_entities | count %}
+            {% if entity_count == 0 %}
+              All systems are okay.
+            {% else %}
+              {% set entity_first = active_entities | first %}
+              {% set entity_source = state_attr(entity_first, 'entity_id') | default(entity_first, true) %}
+              {% if entity_count == 1 %}
+                {{ state_attr(entity_source, 'friendly_name') }} usage is high at {{ states(entity_source, rounded=True, with_unit=True) }}.
+              {% else %}
+                {{ state_attr(entity_source, 'friendly_name') }} ({{ states(entity_source, rounded=True, with_unit=True) }}) and {{ entity_count - 1 }} others or over usage limits.
+              {% endif %}
+            {% endif %}
+          source_entity_id: >
+            {% set active_entities = this.attributes.get('active_entities', []) %}
+            {% if active_entities | count > 0 %}
+              {% set entity_first = active_entities | first %}
+              {% set entity_source = state_attr(entity_first, 'entity_id') | default(entity_first, true) %}
+              {{ entity_source }}
+            {% else %}
+              {{ this.entity_id }}
+            {% endif %}
+
+alert:
+
+  p2_system_usage:
+    name: System Usage
+    entity_id: binary_sensor.p2_system_usage_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_warning
+    repeat:
+      - 60
+      - 1440
+    title: >
+      {{ state_attr('binary_sensor.p2_system_usage_trigger', 'title') }}
+    message: >
+      {{ state_attr('binary_sensor.p2_system_usage_trigger', 'message') }}
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p2_system_usage_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_system_usage
+      subtitle: Lavender Circle
+      group: ha
+      url: "/1-system/alerts"
+      actions:
+        - action: alert.p2_system_usage.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"

@@ -1,37 +1,51 @@
 # Laundry
 # Area
 ---
-#
-# Device Configuration
-#
+
 homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
         package: area/laundry
-      ety: &entity
-        entity_monitor: on
 
-    #
-    # Programmatic entities defined in this package
-    #
-    binary_sensor.washing_machine:
+    binary_sensor.washing_machine_status:
       <<: *package
-
-    #
-    # Sensors needed to function
-    #
-    sensor.laundry_washer_outlet_power:
-      <<: *entity
 
 template:
   binary_sensor:
-    - name: washing_machine
+
+    - name: Washing Machine Status
+      unique_id: washing_machine_status
+      variables:
+        outlet_current: sensor.laundry_washer_outlet_current
       state: >
-        {{ states('sensor.laundry_washer_outlet_power') | float(0) > 2 }}
+        {{ states(outlet_current) | float(-1) > 0.5 }}
+      delay_off:
+        minutes: 5
       icon: >
         {% if this.state %}mdi:washing-machine
         {% else %}mdi:washing-machine-off
         {% endif %}
+      availability: >
+        {{ states(outlet_current) not in ('unknown', 'unavailable', 'none') }}
+      attributes:
+        device_class: running
+
+    - name: Dryer Status
+      unique_id: dryer_status
+      variables:
+        outlet_current: sensor.laundry_dryer_outlet_current
+      state: >
+        {{ states(outlet_current) | float(-1) > 0.5 }}
+      delay_on:
+        seconds: 30
+      delay_off:
+        seconds: 30
+      icon: >
+        {% if this.state %}mdi:tumble-dryer
+        {% else %}mdi:tumble-dryer-off
+        {% endif %}
+      availability: >
+        {{ states(outlet_current) not in ('unknown', 'unavailable', 'none') }}
       attributes:
         device_class: running

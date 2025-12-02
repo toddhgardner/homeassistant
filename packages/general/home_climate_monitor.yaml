@@ -1,0 +1,106 @@
+# Home Climate Monitor
+# General
+#
+# Trigger alerts if home climate sensors are outside of thresholds
+---
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: general/home_climate_monitor
+
+    alert.p2_home_climate:
+      <<: *package
+    binary_sensor.p2_home_climate_trigger:
+      <<: *package
+
+template:
+  - binary_sensor:
+
+      #
+      # Home climate alert trigger
+      # Relies on Threshold helpers created in the UI
+      # Label: Home Climate
+      # Device Class: Problem
+      #
+      - name: P2 Home Climate Trigger
+        state: >
+          {{ this.attributes.get('active_entities', []) | count > 0 }}
+        delay_on:
+          seconds: 10
+        availability: >
+          {% set labeled_entities = label_entities('Home Climate') %}
+          {{ states.binary_sensor
+            | selectattr('entity_id', 'in', labeled_entities)
+            | selectattr('attributes.device_class', 'eq', 'problem')
+            | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+            | list | count > 0}}
+        attributes:
+          device_class: problem
+          monitored_entities: >
+            {% set labeled_entities = label_entities('Home Climate') %}
+            {{ states.binary_sensor
+              | selectattr('entity_id', 'in', labeled_entities)
+              | selectattr('attributes.device_class', 'eq', 'problem')
+              | map(attribute="entity_id")
+              | list }}
+          active_entities: >
+            {% set labeled_entities = label_entities('Home Climate') %}
+            {{ states.binary_sensor
+              | selectattr('entity_id', 'in', labeled_entities)
+              | selectattr('attributes.device_class', 'eq', 'problem')
+              | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+              | selectattr('state', 'eq', 'on')
+              | map(attribute="entity_id")
+              | list }}
+          title: 🌡️ Home Climate Warning
+          message: >
+            {% set active_entities = this.attributes.get('active_entities', []) %}
+            {% set entity_count = active_entities | count %}
+            {% if entity_count == 0 %}
+              Home climate normal.
+            {% else %}
+              {% set entity_first = active_entities | first %}
+              {% set entity_source = state_attr(entity_first, 'entity_id') | default(entity_first, true) %}
+              {% if entity_count == 1 %}
+                {{ state_attr(entity_source, 'friendly_name') }} is {{ state_attr(entity_first, 'position') }} range at {{ states(entity_source, rounded=True, with_unit=True) }}.
+              {% else %}
+                {{ state_attr(entity_source, 'friendly_name') }} ({{ states(entity_source, rounded=True, with_unit=True) }}) and {{ entity_count - 1 }} others are out of range.
+              {% endif %}
+            {% endif %}
+          source_entity_id: >
+            {% set active_entities = this.attributes.get('active_entities', []) %}
+            {% if active_entities | count > 0 %}
+              {% set entity_first = active_entities | first %}
+              {% set entity_source = state_attr(entity_first, 'entity_id') | default(entity_first, true) %}
+              {{ entity_source }}
+            {% else %}
+              {{ this.entity_id }}
+            {% endif %}
+
+alert:
+
+  p2_home_climate:
+    name: Home Climate
+    entity_id: binary_sensor.p2_home_climate_trigger
+    state: "on"
+    can_acknowledge: true
+    skip_first: false
+    repeat:
+      - 60
+      - 1440
+    notifiers: p2_warning
+    title: >
+      {{ state_attr('binary_sensor.p2_home_climate_trigger', 'title') }}
+    message: >
+      {{ state_attr('binary_sensor.p2_home_climate_trigger', 'message') }}
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p2_home_climate_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_home_climate
+      group: climate_alerts
+      actions:
+        - action: alert.p2_home_climate.mute
+          title: "Mute"
+          icon: "sfsymbols:bell.slash"

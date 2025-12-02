@@ -4,18 +4,12 @@
 # Core alerting and notification functionality.
 ---
 
-#
-# Device Configuration
-#
 homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
         package: system/alerting
 
-    #
-    # Programmatic entities defined in this package
-    #
     automation.alert_action_handler:
       <<: *package
     automation.alert_daily_unmute:
@@ -72,21 +66,21 @@ notify:
 template:
   - sensor:
 
-      - name: alert_p1_active_count
+      - name: Alert P1 Active Count
         icon: mdi:alert-box-outline
         state: >
           {{ states.alert
             | selectattr('object_id', 'match', '^p1_*')
             | selectattr('state', 'ne', 'idle')
-            | list | length }}
+            | list | count }}
 
-      - name: alert_p2_active_count
+      - name: Alert P2 Active Count
         icon: mdi:alert-outline
         state: >
           {{ states.alert
             | selectattr('object_id', 'match', '^p2_*')
             | selectattr('state', 'ne', 'idle')
-            | list | length }}
+            | list | count }}
 
 #
 # Automations

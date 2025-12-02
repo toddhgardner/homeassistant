@@ -1,0 +1,75 @@
+- id: '1764292396623'
+  name: Theater Lights Full
+  entities:
+    light.theater_main_lights:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 255
+      device_id: '4'
+      zone_id: '2'
+      friendly_name: Theater Main Lights
+      supported_features: 32
+      state: 'on'
+    light.theater_sconces:
+      supported_color_modes:
+      - brightness
+      color_mode:
+      brightness:
+      device_id: '2'
+      zone_id: '1'
+      friendly_name: Theater Sconces
+      supported_features: 32
+      state: 'off'
+  icon: mdi:lightbulb-on
+  metadata: {}
+- id: '1764292571058'
+  name: Theater Lights Paused
+  entities:
+    light.theater_main_lights:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 51
+      device_id: '4'
+      zone_id: '2'
+      friendly_name: Theater Main Lights
+      supported_features: 32
+      state: 'on'
+    light.theater_sconces:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 255
+      device_id: '2'
+      zone_id: '1'
+      friendly_name: Theater Sconces
+      supported_features: 32
+      state: 'on'
+  icon: mdi:lightbulb-on-50
+  metadata: {}
+- id: '1764292737453'
+  name: Theater Lights Playing
+  entities:
+    light.theater_main_lights:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 2
+      device_id: '4'
+      zone_id: '2'
+      friendly_name: Theater Main Lights
+      supported_features: 32
+      state: 'on'
+    light.theater_sconces:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 25
+      device_id: '2'
+      zone_id: '1'
+      friendly_name: Theater Sconces
+      supported_features: 32
+      state: 'on'
+  icon: mdi:lightbulb-on-30
+  metadata: {}
