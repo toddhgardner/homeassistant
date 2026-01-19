@@ -1,0 +1,32 @@
+# Kitchen
+# Area
+---
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: area/kitchen
+
+    binary_sensor.dishwasher_status:
+      <<: *package
+
+template:
+  binary_sensor:
+
+    - name: Dishwasher Status
+      unique_id: dishwasher_status
+      variables:
+        outlet_current: sensor.kitchen_dishwasher_outlet_current
+      state: >
+        {{ states(outlet_current) | float(-1) > 0.3 }}
+      delay_off:
+        minutes: 5
+      icon: >
+        {% if this.state %}mdi:dishwasher
+        {% else %}mdi:dishwasher-off
+        {% endif %}
+      availability: >
+        {{ states(outlet_current) not in ('unknown', 'unavailable', 'none') }}
+      attributes:
+        device_class: running

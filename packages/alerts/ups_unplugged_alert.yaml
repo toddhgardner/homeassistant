@@ -1,14 +1,13 @@
-# UPS Monitor
-# General
+# UPS Unplugged Alert
+# Alerts
 #
-# Monitor UPS status and alert when on battery power
 ---
 
 homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: general/ups_monitor
+        package: alerts/ups_unplugged
 
     alert.p1_ups_unplugged:
       <<: *package
@@ -17,19 +16,16 @@ homeassistant:
 
 template:
   - binary_sensor:
-
-      #
-      # UPS is unplugged on battery power
-      # Label: UPS
-      # Device Class: Plug
-      #
       - name: P1 UPS Unplugged Trigger
+        unique_id: p1_ups_unplugged_trigger
+        variables:
+          label: UPS
         state: >
           {{ this.attributes.get('active_entities', []) | count > 0 }}
         delay_on:
           seconds: 30
         availability: >
-          {% set labeled_entities = label_entities('UPS') %}
+          {% set labeled_entities = label_entities(label) %}
           {{ states.binary_sensor
             | selectattr('entity_id', 'in', labeled_entities)
             | selectattr('attributes.device_class', 'eq', 'plug')
@@ -39,14 +35,14 @@ template:
         attributes:
           device_class: problem
           monitored_entities: >
-            {% set labeled_entities = label_entities('UPS') %}
+            {% set labeled_entities = label_entities(label) %}
             {{ states.binary_sensor
               | selectattr('entity_id', 'in', labeled_entities)
               | selectattr('attributes.device_class', 'eq', 'plug')
               | map(attribute='entity_id')
               | list }}
           active_entities: >
-            {% set labeled_entities = label_entities('UPS') %}
+            {% set labeled_entities = label_entities(label) %}
             {{ states.binary_sensor
               | selectattr('entity_id', 'in', labeled_entities)
               | selectattr('attributes.device_class', 'eq', 'plug')
@@ -83,16 +79,14 @@ template:
             {% endif %}
 
 alert:
-
   p1_ups_unplugged:
     name: UPS Unplugged
     entity_id: binary_sensor.p1_ups_unplugged_trigger
-    state: "on"
+    state: 'on'
     can_acknowledge: true
     skip_first: false
-    notifiers: p1_critical
-    repeat:
-      30
+    notifiers: p1_alert
+    repeat: 30
     title: >
       {{ state_attr('binary_sensor.p1_ups_unplugged_trigger', 'title') }}
     message: >
@@ -101,12 +95,11 @@ alert:
       Recovered at {{ as_local(states.binary_sensor.p1_ups_unplugged_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p1_ups_unplugged
-      subtitle: Lavender Circle
       group: ha
-      url: "/1-system/alerts"
+      url: /dashboard-lavender/alerts
       push:
         interruption-level: critical
       actions:
         - action: alert.p1_ups_unplugged.mute
-          title: "Mute"
-          icon: "sfsymbols:bell.slash"
+          title: 'Mute'
+          icon: 'sfsymbols:bell.slash'

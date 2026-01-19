@@ -1,37 +1,32 @@
-# Package Monitor
-# General
+# Package Alert
+# Alerts
 #
-# Monitor the availability of the functions defined by packages
+# Monitor the availability of the entities defined by packages. This helps find
+# misconfigurations
 ---
 
 homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: general/package_monitor
+        package: alerts/package_alert
 
     alert.p2_package:
       <<: *package
     binary_sensor.p2_package_trigger:
       <<: *package
+    # Adding this UI helper to the package for testing
+    binary_sensor.test_package_availability:
+      <<: *package
 
 template:
   - binary_sensor:
-
-    #
-    # Package alert trigger
-    # Package: defined
-    #
-    - name: P2 Package Trigger
+    - name: P2 Package Availability Trigger
+      unique_id: p2_package_trigger
       state: >
         {{ this.attributes.get('active_entities', []) | count > 0 }}
       delay_on:
         seconds: 120
-      availability: >
-        {{ states
-          | selectattr('attributes.package', 'defined')
-          | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
-          | list | count > 0 }}
       attributes:
         device_class: problem
         monitored_entities: >
@@ -43,7 +38,7 @@ template:
           {{ states
             | selectattr('attributes.package', 'defined')
             | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
-            | rejectattr('entity_id', 'eq', 'binary_sensor.p2_system_entities_trigger')
+            | rejectattr('entity_id', 'eq', 'binary_sensor.p2_package_trigger')
             | map(attribute="entity_id", default="Unknown")
             | list }}
         title: ⚙️ Package entity unavailable
@@ -69,14 +64,13 @@ template:
           {% endif %}
 
 alert:
-
   p2_package:
-    name: Package Entities
+    name: Package Availability
     entity_id: binary_sensor.p2_package_trigger
     state: "on"
     can_acknowledge: true
     skip_first: false
-    notifiers: p2_warning
+    notifiers: p2_alert
     repeat:
       - 60
       - 1440
@@ -88,9 +82,8 @@ alert:
       Recovered at {{ as_local(states.binary_sensor.p2_package_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_package
-      subtitle: Lavender Circle
       group: ha
-      url: "/1-system/alerts"
+      url: /dashboard-lavender/alerts
       actions:
         - action: alert.p2_package.mute
           title: "Mute"

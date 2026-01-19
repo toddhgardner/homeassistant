@@ -1,35 +1,31 @@
-# Refrigerator Monitor
-# General
+# Refrigerator Temperature Alert
+# Alerts
 #
-# Monitor refrigerator and freezer temperature thresholds and send alerts if they are exceeded.
 ---
 
 homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: general/refrigerator_monitor
+        package: alerts/refrigerator_temperature
 
-    alert.p1_refrigerator:
+    alert.p1_refrigerator_temperature:
       <<: *package
-    binary_sensor.p1_refrigerator_trigger:
+    binary_sensor.p1_refrigerator_temperature_trigger:
       <<: *package
-
 
 template:
   - binary_sensor:
-
-      #
-      # Refrigerator temperature alert trigger
-      # Label: Refrigerator
-      #
-      - name: P1 Refrigerator Trigger
+      - name: P1 Refrigerator Temperature Trigger
+        unique_id: p1_refrigerator_temperature_trigger
+        variables:
+          label: Refrigerator
         state: >
           {{ this.attributes.get('active_entities', []) | count > 0 }}
         delay_on:
           minutes: 60
         availability: >
-          {% set labeled_entities = label_entities('Refrigerator') %}
+          {% set labeled_entities = label_entities(label) %}
           {{ states.binary_sensor
             | selectattr('entity_id', 'in', labeled_entities)
             | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
@@ -38,14 +34,14 @@ template:
         attributes:
           device_class: problem
           monitored_entities: >
-            {{ label_entities('Refrigerator') }}
+            {{ label_entities(label) }}
           active_entities: >
-            {% set labeled_entities = label_entities('Refrigerator') | list %}
+            {% set labeled_entities = label_entities(label) | list %}
             {{ states.binary_sensor
               | selectattr('entity_id', 'in', labeled_entities)
               | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
               | selectattr('state', 'eq', 'off')
-              | map(attribute="entity_id")
+              | map(attribute='entity_id')
               | list }}
           title: ❄️ Refrigerator Temperature Range
           message: >
@@ -71,29 +67,27 @@ template:
             {% endif %}
 
 alert:
-
-  p1_refrigerator:
-    name: Refrigerator
-    entity_id: binary_sensor.p1_refrigerator_trigger
-    state: "on"
+  p1_refrigerator_temperature:
+    name: Refrigerator Temperature
+    entity_id: binary_sensor.p1_refrigerator_temperature_trigger
+    state: 'on'
     can_acknowledge: true
     skip_first: false
-    notifiers: p1_critical
+    notifiers: p1_alert
     repeat: 30
     title: >
-      {{ state_attr('binary_sensor.p1_refrigerator_trigger', 'title') }}
+      {{ state_attr('binary_sensor.p1_refrigerator_temperature_trigger', 'title') }}
     message: >
-      {{ state_attr('binary_sensor.p1_refrigerator_trigger', 'message') }}
+      {{ state_attr('binary_sensor.p1_refrigerator_temperature_trigger', 'message') }}
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p1_refrigerator_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p1_refrigerator_temperature_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
-      tag: p1_refrigerator
-      subtitle: Lavender Circle
+      tag: p1_refrigerator_temperature
       group: ha
-      url: "/1-system/alerts"
+      url: /dashboard-lavender/alerts
       push:
         interruption-level: critical
       actions:
-        - action: alert.p1_refrigerator.mute
-          title: "Mute"
-          icon: "sfsymbols:bell.slash"
+        - action: alert.p1_refrigerator_temperature.mute
+          title: 'Mute'
+          icon: 'sfsymbols:bell.slash'

@@ -1,0 +1,54 @@
+# Front Door
+# Area
+---
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: area/front_door
+
+    binary_sensor.front_door_camera_active:
+      <<: *package
+
+template:
+  - binary_sensor:
+
+    - name: Front Door Camera Active
+      unique_id: front_door_camera_active
+      variables:
+        active_triggers: [
+          'binary_sensor.front_door_camera_motion',
+          'binary_sensor.front_door_camera_package',
+          'binary_sensor.front_door_camera_person',
+          'binary_sensor.front_door_camera_pet',
+          'binary_sensor.front_door_camera_vehicle',
+          'binary_sensor.front_door_camera_visitor'
+        ]
+      state: >
+        {{ states.binary_sensor
+          | selectattr('entity_id', 'in', active_triggers)
+          | selectattr('state', 'eq', 'on')
+          | list | count > 0 }}
+      delay_off:
+        seconds: 30
+
+  - trigger:
+      - platform: state
+        entity_id: binary_sensor.front_door_camera_package
+        to: "on"
+        id: package_detected
+      - platform: state
+        entity_id: binary_sensor.alarm_panel_front_door
+        to: "on"
+        id: door_opened
+    binary_sensor:
+      - name: Front Door Package Waiting
+        unique_id: front_door_package_waiting
+        icon: mdi:package-variant-closed
+        state: >
+          {% if (trigger is defined) %}
+            {{ trigger.id == 'package_detected' }}
+          {% else %}
+            false
+          {% endif %}

@@ -1,0 +1,138 @@
+# Notify Groups
+# General
+#
+---
+homeassistant:
+  customize:
+
+    package.node_anchors:
+      pkg: &package
+        package: general/notify
+
+    notify.email_todd_gardner:
+      <<: *package
+    notify.todd_gardner:
+      <<: *package
+    notify.erin_gardner:
+      <<: *package
+    notify.izzy_gardner:
+      <<: *package
+    notify.sam_gardner:
+      <<: *package
+    notify.parents:
+      <<: *package
+    notify.family:
+      <<: *package
+    notify.p1_alert:
+      <<: *package
+    notify.p2_alert:
+      <<: *package
+
+    person.todd_gardner:
+      notify: notify.todd_gardner
+    person.erin:
+      notify: notify.erin_gardner
+    person.isabelle:
+      notify: notify.izzy_gardner
+    person.samantha_gardner:
+      notify: notify.sam_gardner
+
+notify:
+
+  - name: email_todd_gardner
+    platform: rest
+    resource: https://api.smtp2go.com/v3/email/send
+    method: POST_JSON
+    headers: {
+      X-Smtp2go-Api-Key: !secret smtp2go_api_key,
+      Content-Type: 'application/json',
+      accept: 'application/json'
+    }
+    message_param_name: text_body
+    title_param_name: subject
+    data: {
+      sender: !secret smtp2go_from_email,
+      to: [
+        !secret todds_email
+      ]
+    }
+
+  - name: todd_gardner
+    platform: group
+    services:
+      - service: mobile_app_todds_iphone
+
+  - name: erin_gardner
+    platform: group
+    services:
+      - service: mobile_app_erins_iphone
+
+  - name: izzy_gardner
+    platform: group
+    services:
+      - service: mobile_app_izzys_iphone
+
+  - name: sam_gardner
+    platform: group
+    services:
+      - service: mobile_app_samanthas_phone
+
+  - name: parents
+    platform: group
+    services:
+      - service: todd_gardner
+      - service: erin_gardner
+
+  - name: family
+    platform: group
+    services:
+      - service: todd_gardner
+      - service: erin_gardner
+      - service: izzy_gardner
+      - service: sam_gardner
+
+  - name: p1_alert
+    platform: group
+    services:
+      - service: todd_gardner
+      - service: email_todd_gardner
+
+  - name: p2_alert
+    platform: group
+    services:
+      - service: todd_gardner
+      - service: email_todd_gardner
+
+  - name: maintenance_notice
+    platform: group
+    services:
+      - service: email_todd_gardner
+
+script:
+
+  notify_at_home:
+    alias: "Notify People at Home"
+    fields:
+      message:
+        description: "The notification message"
+        required: true
+        selector:
+          text:
+      title:
+        description: "The notification title"
+        required: true
+        selector:
+          text:
+    sequence:
+      - parallel:
+          - repeat:
+              for_each: >
+                {{ states.person
+                  | selectattr('state', 'eq', 'home')
+                  | map(attribute='entity_id')
+                  | list }}
+              sequence:
+                - action: "{{ state_attr(repeat.item, 'notify') }}"
+                  data:
+                    message: "{{ message }}"
+                    title: "{{ title }}"

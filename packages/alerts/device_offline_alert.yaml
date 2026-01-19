@@ -1,0 +1,99 @@
+# Device Offline Alerts
+# Alerts
+#
+---
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: alerts/device_offline_alert
+
+    alert.p2_device_offline:
+      <<: *package
+    binary_sensor.p2_device_offline_trigger:
+      <<: *package
+
+template:
+  - binary_sensor:
+      - name: P2 Device Offline Trigger
+        unique_id: p2_device_offline_trigger
+        variables:
+          label: Production
+        state: >
+          {{ this.attributes.get('active_devices', []) | count > 0 }}
+        delay_on:
+          minutes: 10
+        availability: >
+          {{ label_devices(label) | count > 0 }}
+        attributes:
+          device_class: problem
+          monitored_devices: >
+            {% set ns = namespace(devices=[]) %}
+            {% set prod_devices = label_devices(label) %}
+            {% for device_id in prod_devices %}
+              {% set ns.devices = ns.devices + [device_name(device_id)] %}
+            {% endfor %}
+            {{ ns.devices }}
+          active_devices: >
+            {% set ns = namespace(active_devices=[]) %}
+            {% set prod_devices = label_devices(label) %}
+            {% for device_id in prod_devices %}
+              {% set device_entities = states
+                | selectattr('entity_id', 'in', device_entities(device_id))
+                | rejectattr('domain', 'in', ['update'])
+                | list %}
+              {% set entity_count = device_entities | count %}
+              {% set entity_offline_count = device_entities
+                | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
+                | list | count %}
+              {% if (entity_offline_count == entity_count) %}
+                {% set ns.active_devices = ns.active_devices + [device_id] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.active_devices }}
+          title: 🛜 Device Offline
+          message: >
+            {% set active_devices = this.attributes.get('active_devices', []) %}
+            {% set device_count = active_devices | count %}
+            {% if device_count == 0 %}
+              All devices online.
+            {% else %}
+              {% set device_first = active_devices | first %}
+              {% if device_count == 1 %}
+                {{ device_name(device_first) }} is offline.
+              {% else %}
+                {{ device_name(device_first) }} and {{ device_count - 1 }} others are offline.
+              {% endif %}
+            {% endif %}
+          source_entity_id: >
+            {{ this.entity_id }}
+          device_id: >
+            {% set active_devices = this.attributes.get('active_devices', []) %}
+            {{ active_devices | first | default('') }}
+
+alert:
+  p2_device_offline:
+    name: Device Offline
+    entity_id: binary_sensor.p2_device_offline_trigger
+    state: 'on'
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_alert
+    repeat:
+      - 60
+      - 1440
+    title: >
+      {{ state_attr('binary_sensor.p2_device_offline_trigger', 'title') }}
+    message: >
+      {{ state_attr('binary_sensor.p2_device_offline_trigger', 'message') }}
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p2_device_offline_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_device_offline
+      group: ha
+      url: /dashboard-lavender/alerts
+      actions:
+        - action: alert.p2_device_offline.mute
+          title: Mute
+          icon: sfsymbols:bell.slash

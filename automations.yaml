@@ -1,60 +1,55 @@
-- id: '1727566814378'
-  alias: Privacy after sunsset
-  description: ''
-  triggers:
-  - event: sunset
-    offset: -00:10:00
-    trigger: sun
-  conditions: []
-  actions:
-  - action: cover.close_cover
-    metadata: {}
-    data: {}
-    target:
-      label_id: privacy
-  - action: switch.turn_on
-    metadata: {}
-    data: {}
-    target:
-      label_id: exterior_lights
-  mode: single
 - id: '1727619363042'
-  alias: Open shades in the morning
-  description: ''
-  trigger:
-  - platform: time
-    at: 08:00:00
-  condition: []
-  action:
-  - action: cover.set_cover_position
-    metadata: {}
-    data:
-      position: 50
-    target:
-      area_id:
-      - kitchen
-      - office
-  - action: cover.open_cover
-    metadata: {}
-    data: {}
-    target:
-      area_id:
-      - dining_room
-      - flex_room
-  mode: single
-- id: '1740363545295'
-  alias: Night Lockup
+  alias: Shade Controller
   description: ''
   triggers:
   - trigger: time
-    at: '23:00:00'
+    at: 08:00:00
+    id: morning
+  - trigger: numeric_state
+    entity_id:
+    - sensor.illuminance
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
+    below: 800
+    id: darken
+  - trigger: sun
+    event: sunset
+    offset: -00:15:00
+    id: sunset
   conditions: []
   actions:
-  - action: switch.turn_off
-    metadata: {}
-    data: {}
-    target:
-      label_id: exterior_lights
+  - choose:
+    - conditions:
+      - condition: trigger
+        id:
+        - morning
+      sequence:
+      - sequence:
+        - action: cover.open_cover
+          metadata: {}
+          target:
+            entity_id:
+            - cover.dining_room_shade
+            - cover.front_office_shade
+            - cover.lounge_shade
+          data: {}
+        - action: cover.stop_cover
+          metadata: {}
+          target:
+            entity_id: cover.kitchen_shade
+          data: {}
+    - conditions:
+      - condition: trigger
+        id:
+        - sunset
+      sequence:
+      - action: cover.close_cover
+        metadata: {}
+        target:
+          entity_id: cover.window_shades
+        data: {}
   mode: single
 - id: '1764032833582'
   alias: Back Office Auto Link Switch
@@ -130,10 +125,11 @@
   alias: Back Patio Auto Heat Mats Off
   description: Turn off heat mats automatically
   triggers:
-  - trigger: state
-    entity_id:
-    - switch.back_patio_heat_mats
-    to: 'on'
+  - type: turned_on
+    device_id: 41d526899fcd5a046a93f31ff8e68c95
+    entity_id: 4170436d2e4a3e76ec6c53f7dc3ff5a1
+    domain: switch
+    trigger: device
     for:
       hours: 3
       minutes: 0
@@ -142,6 +138,7 @@
   - action: switch.turn_off
     target:
       entity_id: switch.back_patio_heat_mats
+    data: {}
   mode: restart
 - id: '1764180137952'
   alias: Garage Auto Door Lights
@@ -150,7 +147,7 @@
     path: auto_door_lights.yaml
     input:
       trigger_sensors:
-      - binary_sensor.alarm_panel_garage_door
+      - binary_sensor.konnected_8813bf464154_garage_door
       - cover.garage_single_garage_door
       - cover.garage_double_garage_door
       target_lights:
@@ -276,7 +273,7 @@
           entity_id: scene.theater_lights_full
   mode: single
 - id: '1764639787851'
-  alias: Notify Laundry Finished
+  alias: Laundry Finished
   description: ''
   triggers:
   - trigger: state
@@ -298,12 +295,627 @@
     - condition: state
       entity_id: binary_sensor.dryer_status
       state: 'off'
+  - condition: state
+    entity_id: binary_sensor.quiet_hours
+    state: 'off'
   actions:
-  - action: script.notify_home
+  - action: script.notify_at_home
     metadata: {}
     data:
       title: Laundry finished
-      message: Finished at {{ ([ states.binary_sensor.washing_machine_status.last_changed
+      message: Finished at {{ as_local([ states.binary_sensor.washing_machine_status.last_changed
         , states.binary_sensor.dryer_status.last_changed ] | max).strftime('%a %b
         %-d, %-I:%M %p') }}
+  mode: single
+- id: '1764726731546'
+  alias: Front Yard Light Controller
+  description: ''
+  triggers:
+  - trigger: numeric_state
+    entity_id:
+    - sensor.illuminance
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
+    below: 1000
+    id: darken
+  - trigger: numeric_state
+    entity_id:
+    - sensor.illuminance
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
+    above: 1500
+    id: lighten
+  - trigger: time
+    at: '22:00:00'
+    id: night
+  - trigger: time
+    at: 07:00:00
+    id: morning
+  conditions:
+  - condition: time
+    after: 05:59:59
+    before: '23:01:01'
+  - condition: or
+    conditions:
+    - condition: numeric_state
+      entity_id: sensor.illuminance
+      below: 1000
+    - condition: numeric_state
+      entity_id: sensor.illuminance
+      above: 1500
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id:
+        - darken
+        - morning
+      sequence:
+      - action: light.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: light.front_yard_lights
+    - conditions:
+      - condition: trigger
+        id:
+        - lighten
+        - night
+      sequence:
+      - action: light.turn_off
+        metadata: {}
+        data: {}
+        target:
+          entity_id: light.front_yard_lights
+  mode: single
+- id: '1764802704899'
+  alias: Package Delivery
+  description: ''
+  triggers:
+  - type: turned_on
+    device_id: 8a5b41055f4819e66ef5523904298087
+    entity_id: 90c994fce7e9a9c50a0c2d5c1c7164da
+    domain: binary_sensor
+    trigger: device
+  conditions:
+  - condition: state
+    entity_id: binary_sensor.quiet_hours
+    state: 'off'
+  actions:
+  - action: script.notify_at_home
+    metadata: {}
+    data:
+      title: Package at the front door
+      message: 'Delivered at {{ as_local(states.binary_sensor.reolink_doorbell_package.last_changed).strftime(''%a
+        %b %-d, %-I:%M %p'') }} '
+  mode: single
+- id: '1765158084170'
+  alias: Isabelle Curfew
+  description: ''
+  triggers:
+  - trigger: time
+    at: '21:00:00'
+    id: time
+  - trigger: numeric_state
+    entity_id:
+    - sensor.izzys_iphone_battery_level
+    attribute: battery_level
+    below: 20
+    id: battery
+  conditions:
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: person.isabelle
+      state:
+      - home
+  - alias: Has not run in 8 hours
+    condition: template
+    value_template: '{{ this.attributes.last_triggered is none or (now() - this.attributes.last_triggered).total_seconds()
+      > 28800 }}'
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id:
+        - time
+      sequence:
+      - variables:
+          message: Your curfew is in 30 minutes. Time to head home.
+          title: Curfew Warning
+    - conditions:
+      - condition: trigger
+        id:
+        - battery
+      sequence:
+      - variables:
+          message: Your battery is low. Check in with your parents on your plans.
+          title: Battery Warning
+  - action: notify.izzy_gardner
+    metadata: {}
+    data:
+      message: '{{ message }}'
+      title: '{{ title }}'
+      data:
+        tag: curfew
+        push:
+          interruption-level: critical
+  - action: notify.parents
+    metadata: {}
+    data:
+      message: Isabelle is away with {{ states('sensor.izzys_iphone_battery_level',
+        with_unit=True) }} battery
+      title: Isabelle Curfew Warning
+      data:
+        tag: isabelle_curfew
+  mode: single
+- id: '1765643563654'
+  alias: Refresh stale locations
+  description: Try to force a location update if a tracker has not updated in 24 hours.
+  triggers:
+  - alias: Todd's location is stale
+    trigger: template
+    value_template: '{% set last_updated = states[state_attr(''person.todd_gardner'',
+      ''device_trackers'')[0]].last_updated %}
+
+      {{ (now() - last_updated).total_seconds() >= 86400 }}
+
+      '
+    id: todd
+  - alias: Sam's location is stale
+    trigger: template
+    value_template: '{% set last_updated = states[state_attr(''person.samantha_gardner'',
+      ''device_trackers'')[0]].last_updated %}
+
+      {{ (now() - last_updated).total_seconds() >= 86400 }}
+
+      '
+    id: sam
+  - alias: Izzy's location is stale
+    trigger: template
+    value_template: '{% set last_updated = states[state_attr(''person.isabelle'',
+      ''device_trackers'')[0]].last_updated %}
+
+      {{ (now() - last_updated).total_seconds() >= 86400 }}'
+    id: izzy
+  - alias: Erin's location is stale
+    trigger: template
+    value_template: '{% set last_updated = states[state_attr(''person.erin'', ''device_trackers'')[0]].last_updated
+      %}
+
+      {{ (now() - last_updated).total_seconds() >= 86400 }}
+
+      '
+    id: erin
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id:
+        - todd
+      sequence:
+      - action: notify.todd_gardner
+        metadata: {}
+        data:
+          message: request_location_update
+        alias: Send Todd's iPhone request_location_update
+    - conditions:
+      - condition: trigger
+        id:
+        - sam
+      sequence:
+      - action: notify.sam_gardner
+        metadata: {}
+        data:
+          message: request_location_update
+        alias: Send Sams's iPhone request_location_update
+    - conditions:
+      - condition: trigger
+        id:
+        - izzy
+      sequence:
+      - action: notify.izzy_gardner
+        metadata: {}
+        data:
+          message: request_location_update
+        alias: Send Izzy's iPhone request_location_update
+    - conditions:
+      - condition: trigger
+        id:
+        - erin
+      sequence:
+      - action: notify.erin_gardner
+        metadata: {}
+        data:
+          message: request_location_update
+        alias: Send Erin's iPhone request_location_update
+  - action: notify.email_todd_gardner
+    metadata: {}
+    data:
+      title: Location stale for {{ trigger.id }}
+      message: Attempting to update
+  mode: parallel
+  max: 10
+- id: '1766264549085'
+  alias: Front Yard Switch Scene Controller
+  description: Double-clicking the front yard light switches will toggle all the lights
+    in the group
+  triggers:
+  - device_id: d18033b7b21556006da4ece52a4b6fa3
+    domain: zwave_js
+    type: event.value_notification.central_scene
+    property: scene
+    property_key: '001'
+    endpoint: 0
+    command_class: 91
+    subtype: Endpoint 0 Scene 001
+    trigger: device
+    value: 3
+    id: front porch double on
+    alias: Front Porch double on
+  - device_id: d18033b7b21556006da4ece52a4b6fa3
+    domain: zwave_js
+    type: event.value_notification.central_scene
+    property: scene
+    property_key: '002'
+    endpoint: 0
+    command_class: 91
+    subtype: Endpoint 0 Scene 002
+    trigger: device
+    id: front porch double off
+    value: 3
+    alias: Front Porch double off
+  - device_id: 278676596e2d8c388c77febb73dfa567
+    domain: zwave_js
+    type: event.value_notification.central_scene
+    property: scene
+    property_key: '001'
+    endpoint: 0
+    command_class: 91
+    subtype: Endpoint 0 Scene 001
+    trigger: device
+    value: 3
+    id: garage double on
+    alias: Garage Outside double on
+  - alias: Garage Outside double off
+    device_id: 278676596e2d8c388c77febb73dfa567
+    domain: zwave_js
+    type: event.value_notification.central_scene
+    property: scene
+    property_key: '002'
+    endpoint: 0
+    command_class: 91
+    subtype: Endpoint 0 Scene 002
+    trigger: device
+    id: garage double off
+    value: 3
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id:
+        - front porch double on
+        - garage double on
+      sequence:
+      - action: light.turn_on
+        metadata: {}
+        target:
+          entity_id: light.front_yard_lights
+        data: {}
+    - conditions:
+      - condition: trigger
+        id:
+        - front porch double off
+        - garage double off
+      sequence:
+      - action: light.turn_off
+        metadata: {}
+        target:
+          entity_id: light.front_yard_lights
+        data: {}
+  mode: single
+- id: '1766516688126'
+  alias: Low Battery Check
+  description: Check Production devices daily for batteries and add any that have
+    less than 20% remaining to the maintenance list.
+  triggers:
+  - trigger: time
+    at: 07:00:00
+  conditions: []
+  actions:
+  - action: todo.get_items
+    metadata: {}
+    target:
+      entity_id: todo.maintenance
+    data:
+      status: needs_action
+    response_variable: uncompleted_maintenance_items
+  - variables:
+      low_batteries: "{% set label = 'Production' %}  {% set battery_limit = 20.0
+        %}  {% set exclude_devices = [\n  '29b1ea7766607bc3fc5b456f2efafd41',\n  'a60b69543ac7f2c0a43f17ddd44078e8',\n
+        \ '58aadd7003405e4c76e166880c01ee1c',\n  'd1725662ae90ea69a5197b4321da26f4'\n]
+        %} {% set existing_texts = uncompleted_maintenance_items['todo.maintenance']['items']
+        | map(attribute='summary') | list %} {% set ns = namespace(devices=[]) %}
+        {% set devices = label_devices(label) \n  | reject('in', exclude_devices)
+        \n  | list %}\n{% for device_id in devices %}\n  {% set device_battery = states.sensor\n
+        \   | selectattr('entity_id', 'in', device_entities(device_id))\n    | rejectattr('state',
+        'in', ['unknown', 'unavailable', 'none']) \n    | selectattr('attributes.device_class',
+        'eq', 'battery')\n    | list | first | default(false) %}\n  {% if (device_battery)
+        %}\n    {% set battery_level = device_battery.state | float(-1) %}\n    {%
+        if battery_level <= battery_limit | float(-1) %}\n      {% set device_name
+        = device_name(device_id) %}\n      {% set item_text = 'Change battery in '
+        ~ device_name %}\n      {% set ns.devices = ns.devices + [{\n        'device_id':
+        device_id,\n        'device_name': device_name,\n        'entity_id': device_battery.entity_id,\n
+        \       'battery_level': battery_level,\n        'text': item_text,\n        'is_active':
+        item_text in existing_texts\n      }] %}\n    {% endif %}\n  {% endif %}\n{%
+        endfor %} {{ ns.devices }}\n"
+  - repeat:
+      for_each: '{{ low_batteries | selectattr(''is_active'', ''eq'', false) | list
+        }}'
+      sequence:
+      - action: todo.add_item
+        metadata: {}
+        target:
+          entity_id: todo.maintenance
+        data:
+          item: '{{ repeat.item.text }}'
+          description: Battery at {{ repeat.item.battery_level }}% ({{ repeat.item.entity_id
+            }})
+          due_date: '{{ (now() + timedelta(days=7)).strftime(''%Y-%m-%d'') }}'
+  - if:
+    - condition: template
+      value_template: '{{ low_batteries | length > 0 }}'
+      alias: If any low batteries found
+    then:
+    - action: notify.maintenance_notice
+      metadata: {}
+      data:
+        title: "\U0001FAAB {{ low_batteries | length }} devices have low battery"
+        message: 'The following Production devices have low batteries:
+
+          {% for item in low_batteries %} • {{ item.device_name }}: {{ item.battery_level
+          }}%
+
+          {% endfor %}'
+  mode: single
+- id: '1766853586763'
+  alias: Notify when location permission removed
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - sensor.erins_iphone_location_permission
+    - sensor.izzys_iphone_location_permission
+    - sensor.todds_iphone_location_permission
+    - sensor.sams_phone_location_permission
+    from:
+    - Authorized Always
+  conditions: []
+  actions:
+  - action: notify.mobile_app_{{ device_name('sensor.todds_iphone_location_permission')
+      | slugify }}
+    metadata: {}
+    data:
+      title: Home Assistant needs your location
+      message: Please update the location permission to "Always"
+  mode: single
+- id: '1766864785043'
+  alias: Leak Controller
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.leak_sensors
+    to:
+    - 'on'
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
+    id: wet
+  - trigger: state
+    entity_id:
+    - valve.titan_water_valve_actuator
+    to:
+    - closed
+    id: closed
+  - trigger: state
+    entity_id:
+    - binary_sensor.titan_water_valve_actuator_valve_jammed
+    to:
+    - 'on'
+    id: jammed
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id:
+        - wet
+      sequence:
+      - action: valve.close_valve
+        metadata: {}
+        target:
+          entity_id: valve.titan_water_valve_actuator
+        data: {}
+    - conditions:
+      - condition: trigger
+        id:
+        - closed
+      sequence:
+      - action: notify.p1_alert
+        metadata: {}
+        data:
+          title: "\U0001F6BF Water Main Closed"
+          message: The water main was closed.
+    - conditions:
+      - condition: trigger
+        id:
+        - jammed
+      sequence:
+      - action: notify.p1_alert
+        metadata: {}
+        data:
+          title: "\U0001F6BF Water Main Jammed"
+          message: Attempted to close the water main, but failed because it is jammed.
+  mode: queued
+  max: 10
+- id: '1766884336652'
+  alias: Maintain Device Filters
+  description: ''
+  triggers:
+  - type: value
+    device_id: dde6c43e565b9a83fd5657941af1994a
+    entity_id: 9c8df369e1b4562bfe3f06f22ddadc45
+    domain: sensor
+    trigger: device
+    below: 1
+  - type: value
+    device_id: dde6c43e565b9a83fd5657941af1994a
+    entity_id: b2d0c22ed2b8ca0b99ba695ac2871824
+    domain: sensor
+    trigger: device
+    below: 1
+  - type: value
+    device_id: d2922bee3c38271f5c6e7a4a653cfca3
+    entity_id: 365d98cf210216ec1bb830df9117cec7
+    domain: sensor
+    trigger: device
+    below: 1
+  conditions: []
+  actions:
+  - action: todo.add_item
+    metadata: {}
+    target:
+      entity_id: todo.maintenance
+    data:
+      item: Replace filters in {{ state_attr(trigger.entity_id, 'friendly_name') }}
+      due_date: '{{ (now() + timedelta(days=7)).strftime(''%Y-%m-%d'') }}'
+  mode: single
+- id: '1766886148127'
+  alias: HVAC Filter Controller
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.hvac_status
+    to:
+    - 'on'
+    id: running
+  - trigger: state
+    entity_id:
+    - binary_sensor.hvac_status
+    to:
+    - 'off'
+    id: not-running
+  - trigger: state
+    entity_id:
+    - timer.hvac_run_time
+    to:
+    - idle
+    id: expired
+  - trigger: tag
+    tag_id: 00aa034d-11e9-48e6-9b6b-4ceefd8c09b4
+    id: changed-filter
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id:
+        - running
+      sequence:
+      - action: timer.start
+        metadata: {}
+        target:
+          entity_id: timer.hvac_run_time
+        data: {}
+    - conditions:
+      - condition: trigger
+        id:
+        - not-running
+      sequence:
+      - action: timer.pause
+        metadata: {}
+        target:
+          entity_id: timer.hvac_run_time
+        data: {}
+    - conditions:
+      - condition: trigger
+        id:
+        - expired
+      sequence:
+      - action: todo.add_item
+        metadata: {}
+        target:
+          entity_id: todo.maintenance
+        data:
+          item: Change HVAC Filter
+          due_date: '{{ (now() + timedelta(days=7)).strftime(''%Y-%m-%d'') }}'
+    - conditions:
+      - condition: trigger
+        id:
+        - changed-filter
+      sequence:
+      - action: timer.cancel
+        metadata: {}
+        target:
+          entity_id: timer.hvac_run_time
+        data: {}
+      - action: todo.remove_item
+        metadata: {}
+        target:
+          entity_id: todo.maintenance
+        data:
+          item: Change HVAC Filter
+  mode: single
+- id: '1767230034673'
+  alias: Hot Tub Controller
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - timer.hot_tub_chemical_lifetime
+    to:
+    - idle
+    id: chemical
+  - trigger: state
+    entity_id:
+    - timer.hot_tub_water_lifetime
+    to:
+    - idle
+    id: water
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id:
+        - chemical
+      sequence:
+      - action: todo.add_item
+        metadata: {}
+        target:
+          entity_id: todo.maintenance
+        data:
+          item: Check Hot Tub Chemicals
+          due_date: '{{ (now() + timedelta(days=1)).strftime(''%Y-%m-%d'') }}'
+    - conditions:
+      - condition: trigger
+        id:
+        - water
+      sequence:
+      - action: todo.add_item
+        metadata: {}
+        target:
+          entity_id: todo.maintenance
+        data:
+          item: Change Hot Tub Water
+          due_date: '{{ (now() + timedelta(days=14)).strftime(''%Y-%m-%d'') }}'
   mode: single

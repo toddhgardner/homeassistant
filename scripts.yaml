@@ -22,33 +22,38 @@ force_garage_doors_closed:
       confirm_text: Force close
   description: ''
   icon: mdi:garage-alert-variant
-notify_home:
-  sequence:
-  - variables:
-      targets:
-      - person: person.todd_gardner
-        notify: notify.mobile_app_todds_iphone
-  - repeat:
-      for_each: '{{ targets }}'
-      sequence:
-      - if:
-        - condition: template
-          value_template: '{{ is_state(repeat.item.person, ''home'') }}'
-        then:
-        - action: '{{ repeat.item.notify }}'
-          data:
-            title: '{{ title }}'
-            message: '{{ message }}'
+update_person_location:
+  alias: Update location
   fields:
-    title:
-      selector:
-        text:
-      name: Title
+    device_id:
+      description: The device to update
       required: true
-    message:
       selector:
-        text:
-      name: Message
+        device:
+          filter:
+            integration: mobile_app
+  sequence:
+  - action: notify.mobile_app_{{ device_name(device_id) | slugify }}
+    data:
+      message: request_location_update
+set_cover_to_favorite:
+  sequence:
+  - repeat:
+      count: 10
+      sequence:
+      - action: cover.stop_cover
+        data: {}
+        target:
+          entity_id: '{{ cover }}
+
+            '
+  fields:
+    cover:
+      name: Cover
       required: true
-  alias: Notify Home
+      selector:
+        entity:
+          filter:
+            domain: cover
+  alias: Set Cover to Favorite
   description: ''

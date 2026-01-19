@@ -8,79 +8,37 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: system/alerting
+        package: alerts
 
     automation.alert_action_handler:
       <<: *package
     automation.alert_daily_unmute:
       <<: *package
-    notify.email_todd:
+    sensor.p1_alert_count:
       <<: *package
-    notify.p1_critical:
-      <<: *package
-    notify.p2_warning:
-      <<: *package
-    sensor.alert_p1_active_count:
-      <<: *package
-    sensor.alert_p2_active_count:
+    sensor.p2_alert_count:
       <<: *package
 
-#
-# Notification Levels
-#
-notify:
-
-  - name: "email_todd"
-    platform: rest
-    resource: https://api.smtp2go.com/v3/email/send
-    method: "POST_JSON"
-    headers: {
-      X-Smtp2go-Api-Key: !secret smtp2go_api_key,
-      Content-Type: "application/json",
-      accept: "application/json"
-    }
-    message_param_name: "text_body"
-    title_param_name: "subject"
-    data: {
-      sender: !secret smtp2go_from_email,
-      to: [
-        !secret todds_email
-      ]
-    }
-
-  - name: p1_critical
-    platform: group
-    services:
-      - service: mobile_app_todds_iphone
-      - service: email_todd
-
-  - name: p2_warning
-    platform: group
-    services:
-      - service: mobile_app_todds_iphone
-      - service: email_todd
-
-#
-# Alert Status Sensors
-#
 template:
   - sensor:
-
-      - name: Alert P1 Active Count
-        icon: mdi:alert-box-outline
+      - name: P1 Alert Count
+        unique_id: p1_alert_count
+        icon: mdi:alert-box
         state: >
           {{ states.alert
             | selectattr('object_id', 'match', '^p1_*')
             | selectattr('state', 'ne', 'idle')
-            | list | count }}
-
-      - name: Alert P2 Active Count
-        icon: mdi:alert-outline
+            | list
+            | count }}
+      - name: P2 Alert Count
+        unique_id: p2_alert_count
+        icon: mdi:alert
         state: >
           {{ states.alert
             | selectattr('object_id', 'match', '^p2_*')
             | selectattr('state', 'ne', 'idle')
-            | list | count }}
+            | list
+            | count }}
 
 #
 # Automations

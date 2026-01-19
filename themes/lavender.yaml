@@ -1,0 +1,74 @@
+lavender:
+  # primary-color: red
+  # accent-color: blue
+  # primary-text-color: blue
+
+  ha-font-size-xs: 12px
+
+  ha-badge-border-radius: 0
+  ha-badge-size: 48px
+  ha-badge-icon-size: 24px
+  ha-badge-font-size: 14px
+
+
+  ha-card-background: rgba(255, 255, 255, 0.1)
+  ha-card-backdrop-filter: blur(8px)
+  ha-card-border-color: rgba(255, 255, 255, 0.125)
+  ha-card-border-radius: 0
+  ha-card-box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1)
+
+  card-mod-theme: lavender
+  card-mod-view-yaml: |
+    .: |
+      {% set is_p1 = states('sensor.p1_alert_count') | float(0) > 0 %}
+      {% set is_p2 = states('sensor.p2_alert_count') | float(0) > 0 %}
+      :host {
+        {% if (is_p1) %}
+        --lavender-alert-color: var(--error-color);
+        --lavender-alert-text: "CRITICAL";
+        {% elif (is_p2) %}
+        --lavender-alert-color: var(--warning-color);
+        --lavender-alert-text: "WARNING";
+        {% endif %}
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: inset 0 0 8px 8px var(--lavender-alert-color);
+        }
+        50% {
+          box-shadow: inset 0 0 32px 32px var(--lavender-alert-color);
+        }
+        100% {
+          box-shadow: inset 0 0 8px 8px var(--lavender-alert-color);
+        }
+      }
+      {% if (is_p1 or is_p2) %}
+      hui-view {
+        position: relative;
+        box-shadow: inset 0 0 32px 32px var(--lavender-alert-color);
+        animation: pulse 2s ease-in-out infinite;
+        ::before {
+          content: var(--lavender-alert-text);
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 32px;
+          background-color: var(--lavender-alert-color);
+          color: white;
+          font-size: 24px;
+          line-height: 32px;
+          font-weight: 700;
+          margin-inline: auto;
+          width: fit-content;
+          padding: 0px 32px;
+          box-shadow: 0 0 8px 8px var(--lavender-alert-color);
+        }
+      }
+      {% endif %}
+
+    hui-sections-view$:
+      hui-view-header$: |
+        hui-view-badges {
+          margin-bottom: 8px;
+        }

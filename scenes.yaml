@@ -46,6 +46,13 @@
       friendly_name: Theater Sconces
       supported_features: 32
       state: 'on'
+    cover.lounge_shade:
+      current_position: 0
+      assumed_state: true
+      device_class: shade
+      friendly_name: Lounge Shade
+      supported_features: 15
+      state: closed
   icon: mdi:lightbulb-on-50
   metadata: {}
 - id: '1764292737453'
@@ -54,8 +61,8 @@
     light.theater_main_lights:
       supported_color_modes:
       - brightness
-      color_mode: brightness
-      brightness: 2
+      color_mode:
+      brightness: 5
       device_id: '4'
       zone_id: '2'
       friendly_name: Theater Main Lights
@@ -71,5 +78,12 @@
       friendly_name: Theater Sconces
       supported_features: 32
       state: 'on'
+    cover.lounge_shade:
+      current_position: 0
+      assumed_state: true
+      device_class: shade
+      friendly_name: Lounge Shade
+      supported_features: 15
+      state: closed
   icon: mdi:lightbulb-on-30
   metadata: {}

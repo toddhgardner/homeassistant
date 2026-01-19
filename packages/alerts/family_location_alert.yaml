@@ -1,0 +1,94 @@
+# Family Location Alert
+# Alerts
+#
+---
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: alerts/family_location_alert
+
+    alert.p2_family_location:
+      <<: *package
+    binary_sensor.p2_family_location_trigger:
+      <<: *package
+
+template:
+  - binary_sensor:
+      - name: P2 Family Location Trigger
+        unique_id: p2_family_location_trigger
+        variables:
+          location_permission_list:
+            - sensor.erins_iphone_location_permission
+            - sensor.izzys_iphone_location_permission
+            - sensor.todds_iphone_location_permission
+            - sensor.sams_phone_location_permission
+        state: >
+          {{ this.attributes.get('active_entities', []) | count > 0 }}
+        delay_on:
+          seconds: 10
+        availability: >
+          {{ states.sensor
+            | selectattr('entity_id', 'in', location_permission_list)
+            | rejectattr('state', 'in', ['unavailable', 'unknown', 'none'])
+            | list | count > 0 }}
+        attributes:
+          device_class: problem
+          monitored_entities: >
+            {{ location_permission_list }}
+          active_entities: >
+            {{ states.sensor
+              | selectattr('entity_id', 'in', location_permission_list)
+              | selectattr('state', 'ne', 'Authorized Always')
+              | map(attribute='entity_id')
+              | list }}
+          title: 📍 Location Unknown
+          message: >
+            {% set active_entities = this.attributes.get('active_entities', []) %}
+            {% set entity_count = active_entities | count %}
+            {% if entity_count == 0 %}
+              All locations tracked.
+            {% else %}
+              {% set entity_first = active_entities | first %}
+              {% if entity_count == 1 %}
+                {{ state_attr(entity_first, 'friendly_name') }} is {{ states(entity_first, rounded=True, with_unit=True) }}.
+              {% else %}
+                {{ state_attr(entity_first, 'friendly_name') }} and {{ entity_count - 1 }} others untracked.
+              {% endif %}
+            {% endif %}
+          source_entity_id: >
+            {% set active_entities = this.attributes.get('active_entities', []) %}
+            {% if active_entities | count > 0 %}
+              {% set entity_first = active_entities | first %}
+              {% set entity_source = state_attr(entity_first, 'entity_id') | default(entity_first, true) %}
+              {{ entity_source }}
+            {% else %}
+              {{ this.entity_id }}
+            {% endif %}
+
+alert:
+  p2_family_location:
+    name: Family Location
+    entity_id: binary_sensor.p2_family_location_trigger
+    state: 'on'
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p2_alert
+    repeat:
+      - 60
+      - 1440
+    title: >
+      {{ state_attr('binary_sensor.p2_family_location_trigger', 'title') }}
+    message: >
+      {{ state_attr('binary_sensor.p2_family_location_trigger', 'message') }}
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p2_family_location_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_family_location
+      group: ha
+      url: /dashboard-lavender/alerts
+      actions:
+        - action: alert.p2_family_location.mute
+          title: Mute
+          icon: sfsymbols:bell.slash

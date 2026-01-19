@@ -1,14 +1,13 @@
-# Leak Monitor
-# General
+# Leak Alert
+# Alerts
 #
-# Trigger alerts if any leak sensor goes off.
 ---
 
 homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: general/leak_monitor
+        package: alerts/leak_alert
 
     alert.p1_leak:
       <<: *package
@@ -17,36 +16,27 @@ homeassistant:
 
 template:
   - binary_sensor:
-
-      #
-      # Leak alert trigger
-      # Label: Leak
-      # Device Class: Moisture
-      #
       - name: P1 Leak Trigger
+        unique_id: p1_leak_trigger
+        variables:
+          group_entity_id: binary_sensor.leak_sensors
         state: >
-          {{ this.attributes.get('active_entities', []) | count > 0 }}
+          {{ is_state(group_entity_id, 'on') }}
         delay_on:
           seconds: 10
         availability: >
-          {% set labeled_entities = label_entities('Leak') %}
-          {{ states.binary_sensor
-            | selectattr('entity_id', 'in', labeled_entities)
-            | selectattr('attributes.device_class', 'eq', 'moisture')
-            | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
-            | list | count > 0 }}
+          {{ states(group_entity_id) is defined and
+            not is_state(group_entity_id, ['unknown', 'unavailable', 'none']) }}
         attributes:
           device_class: problem
           monitored_entities: >
-            {{ label_entities('Leak') }}
+            {{ expand(group_entity_id)
+              | map(attribute='entity_id')
+              | list }}
           active_entities: >
-            {% set labeled_entities = label_entities('Leak') | list %}
-            {{ states.binary_sensor
-              | selectattr('entity_id', 'in', labeled_entities)
-              | selectattr('attributes.device_class', 'eq', 'moisture')
-              | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])
+            {{ expand(group_entity_id)
               | selectattr('state', 'eq', 'on')
-              | map(attribute="entity_id")
+              | map(attribute='entity_id')
               | list }}
           title: 💧 Leak Detected
           message: >
@@ -63,22 +53,16 @@ template:
               {% endif %}
             {% endif %}
           source_entity_id: >
-            {% set active_entities = this.attributes.get('active_entities', []) %}
-            {% if active_entities | count > 0 %}
-              {{ active_entities | first }}
-            {% else %}
-              {{ this.entity_id }}
-            {% endif %}
+            {{ group_entity_id }}
 
 alert:
-
   p1_leak:
     name: Leak
     entity_id: binary_sensor.p1_leak_trigger
-    state: "on"
+    state: 'on'
     can_acknowledge: true
     skip_first: false
-    notifiers: p1_critical
+    notifiers: p1_alert
     repeat: 30
     title: >
       {{ state_attr('binary_sensor.p1_leak_trigger', 'title') }}
@@ -88,12 +72,11 @@ alert:
       Recovered at {{ as_local(states.binary_sensor.p1_leak_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p1_leak
-      subtitle: Lavender Circle
       group: ha
-      url: "/1-system/alerts"
+      url: /dashboard-lavender/alerts
       push:
         interruption-level: critical
       actions:
         - action: alert.p1_leak.mute
-          title: "Mute"
-          icon: "sfsymbols:bell.slash"
+          title: Mute
+          icon: sfsymbols:bell.slash

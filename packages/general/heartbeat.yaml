@@ -1,14 +1,13 @@
 # Heartbeat
-# System
+# General
 #
-# Send heartbeat monitoring request to external service for alerting
 ---
 
 homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: system/heartbeat
+        package: general/heartbeat
 
     alert.p2_heartbeat:
       <<: *package
@@ -45,14 +44,14 @@ input_datetime:
 automation:
   - id: heartbeat_auto_send
     alias: Heartbeat Auto Send
-    description: "Send system heartbeat to status.toddhgardner.com."
+    description: 'Send system heartbeat to status.toddhgardner.com.'
     triggers:
       - trigger: time_pattern
-        minutes: "/1"
+        minutes: '/1'
     actions:
       - action: rest_command.send_heartbeat
         data:
-          status: "up"
+          status: 'up'
           msg: >
             uptime: {{ relative_time(as_datetime(states('sensor.uptime'))) }}
           ping: >
@@ -72,11 +71,8 @@ automation:
 
 template:
   - binary_sensor:
-
-      #
-      # Alert Trigger
-      #
       - name: P2 Heartbeat Trigger
+        unique_id: p2_heartbeat_trigger
         state: >
           {{ now().timestamp() - state_attr('input_datetime.last_successful_heartbeat', 'timestamp') > 300 }}
         availability: >
@@ -89,7 +85,7 @@ template:
             | list | count == 3 }}
         attributes:
           device_class: problem
-          source_entity_id: "input_datetime.last_successful_heartbeat"
+          source_entity_id: 'input_datetime.last_successful_heartbeat'
           title: 💔 No heartbeat
           message: >
             {% if this.state %}No heartbeat since {{ as_datetime(state_attr('input_datetime.last_successful_heartbeat', 'timestamp')).strftime('%a %b %-d, %-I:%M %p') }}
@@ -97,14 +93,13 @@ template:
             {% endif %}
 
 alert:
-
   p2_heartbeat:
     name: Heartbeat Warning
     entity_id: binary_sensor.p2_heartbeat_trigger
-    state: "on"
+    state: 'on'
     can_acknowledge: true
     skip_first: false
-    notifiers: p2_warning
+    notifiers: p2_alert
     repeat:
       - 60
       - 1440
@@ -116,10 +111,9 @@ alert:
       Recovered at {{ as_local(states.binary_sensor.p2_heartbeat_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_heartbeat
-      subtitle: Lavender Circle
       group: ha
-      url: "/1-system/alerts"
+      url: /dashboard-lavender/alerts
       actions:
         - action: alert.p2_heartbeat.mute
-          title: "Mute"
-          icon: "sfsymbols:bell.slash"
+          title: 'Mute'
+          icon: 'sfsymbols:bell.slash'

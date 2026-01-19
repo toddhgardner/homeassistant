@@ -1,0 +1,76 @@
+# Smoke Alert
+# Alerts
+#
+---
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: alerts/smoke_alert
+
+    alert.p1_smoke:
+      <<: *package
+    binary_sensor.p1_smoke_trigger:
+      <<: *package
+
+template:
+  - binary_sensor:
+      - name: P1 Smoke Trigger
+        unique_id: p1_smoke_trigger
+        variables:
+          group_entity_id: binary_sensor.smoke_detectors
+        state: >
+          {{ is_state(group_entity_id, 'on') }}
+        availability: >
+          {{ states(group_entity_id) is defined and
+            not is_state(group_entity_id, ['unknown', 'unavailable', 'none']) }}
+        attributes:
+          device_class: problem
+          monitored_entities: >
+            {{ expand(group_entity_id)
+              | map(attribute='entity_id')
+              | list }}
+          active_entities: >
+            {{ expand(group_entity_id)
+              | selectattr('state', 'eq', 'on')
+              | map(attribute='entity_id')
+              | list }}
+          title: 🔥 Smoke Detected
+          message: >
+            {% set active_entities = this.attributes.get('active_entities', []) %}
+            {% set entity_count = active_entities | count %}
+            {% if entity_count == 0 %}
+              All sensors clear.
+            {% else %}
+              {% set entity_first = active_entities | first %}
+              {{ state_attr(entity_first, 'friendly_name') }} detected smoke.
+            {% endif %}
+          source_entity_id: >
+            {{ group_entity_id }}
+
+alert:
+  p1_smoke:
+    name: Smoke
+    entity_id: binary_sensor.p1_smoke_trigger
+    state: 'on'
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p1_alert
+    repeat: 30
+    title: >
+      {{ state_attr('binary_sensor.p1_smoke_trigger', 'title') }}
+    message: >
+      {{ state_attr('binary_sensor.p1_smoke_trigger', 'message') }}
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p1_smoke_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p1_smoke
+      group: ha
+      url: /dashboard-lavender/alerts
+      push:
+        interruption-level: critical
+      actions:
+        - action: alert.p1_smoke.mute
+          title: Mute
+          icon: sfsymbols:bell.slash

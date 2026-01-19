@@ -7,7 +7,13 @@ frontend:
   themes: !include_dir_merge_named themes
   # @see https://github.com/thomasloven/lovelace-card-mod#performance-improvements
   extra_module_url:
-    - /hacsfiles/lovelace-card-mod/card-mod.js
+    - /hacsfiles/lovelace-card-mod/card-mod.js?hacstag=12345678901
+
+zha:
+  zigpy_config:
+    ota:
+      otau_directory: /config/zb_ota_auto_update
+      extra_providers: [{'type': 'thirdreality'}]
 
 automation: !include automations.yaml
 script: !include scripts.yaml
@@ -21,33 +27,3 @@ homeassistant:
 ################################################################################
 lovelace:
   mode: storage
-
-  # This doesn't matter since we are in mode: storage right now to get the default
-  # dashboad. You need to add resources at /config/lovelace/resources
-  #
-  # resources:
-  #   - url: /hacsfiles/button-card/button-card.js
-  #     type: module
-  #   - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
-  #     type: module
-  #   - url: /hacsfiles/logbook-card/logbook-card.js
-  #     type: module
-
-  #
-  # Dashboards
-  #
-  dashboards:
-
-    0-lavender:
-      mode: yaml
-      title: Lavender
-      icon: mdi:home
-      show_in_sidebar: true
-      filename: ui/lavender/lavender-dashboard.yaml
-
-    1-system:
-      mode: yaml
-      title: System
-      icon: mdi:home-lightbulb
-      show_in_sidebar: true
-      filename: ui/system/system-dashboard.yaml
