@@ -3,6 +3,39 @@ lavender:
   # accent-color: blue
   # primary-text-color: blue
 
+  modes:                         # 1.2.1 - change add modes: dark-only declaration
+    dark: {}
+
+
+  # =========================
+  # HEADER (Top Bar)
+  # =========================
+  app-header-backdrop-filter: 'blur(8px) saturate(1.1)'
+  app-header-background-color: 'rgba(30, 30, 30, 0.01)'
+  app-header-text-color: 'rgba(240, 243, 255, 0.95)'
+  app-header-edit-background-color: 'rgba(30, 33, 54, 0.8)'
+  app-header-edit-text-color: 'rgba(234, 235, 238, 0.98)'
+  app-theme-color: 'rgb(0, 0, 0)'                                                      # 1.2 Glass – header theme color hint for browsers
+
+  # =========================
+  # SIDEBAR / DRAWER
+  # =========================
+  sidebar-background-color: 'rgba(30, 30, 30, 0.8)'
+  sidebar-icon-color: 'rgba(234, 235, 238, 0.6)'
+  sidebar-text-color: 'rgba(234, 235, 238, 0.8)'
+  sidebar-selected-icon-color: 'rgba(234, 235, 238, 0.95)'
+  sidebar-selected-text-color: 'rgba(234, 235, 238, 0.98)'
+
+  # =========================
+  # DIALOGS
+  # =========================
+  ha-dialog-surface-backdrop-filter: 'blur(8px)'                  # 1.2 Glass – same blur as cards
+  ha-dialog-surface-background: 'rgba(30, 30, 30, 0.7)'
+  dialog-box-shadow: '0 12px 20px rgba(0, 0, 0, 0.25)'
+  paper-dialog-background-color: 'rgba(30, 30, 30, 0.7)'
+  mdc-dialog-scrim-color: 'rgba(0, 0, 0, 0.8)'
+
+
   ha-font-size-xs: 12px
 
   ha-badge-border-radius: 0

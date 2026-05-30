@@ -21,7 +21,7 @@ homeassistant:
       <<: *package
     notify.parents:
       <<: *package
-    notify.family:
+    notify.household:
       <<: *package
     notify.p1_alert:
       <<: *package
@@ -83,7 +83,7 @@ notify:
       - service: todd_gardner
       - service: erin_gardner
 
-  - name: family
+  - name: household
     platform: group
     services:
       - service: todd_gardner
@@ -127,7 +127,7 @@ script:
       - parallel:
           - repeat:
               for_each: >
-                {{ states.person
+                {{ expand('group.household')
                   | selectattr('state', 'eq', 'home')
                   | map(attribute='entity_id')
                   | list }}

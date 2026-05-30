@@ -22,6 +22,7 @@ custom_components
 image
 www
 
+.cache
 .vscode
 .HA_VERSION
 .ha_run.lock

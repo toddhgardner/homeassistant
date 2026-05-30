@@ -1,49 +1,61 @@
 - id: '1727619363042'
-  alias: Shade Controller
-  description: ''
+  alias: Commons Shade Controller
+  description: Control the raising and lowering of window shades in the common areas
+    of the house.
   triggers:
-  - trigger: time
-    at: 08:00:00
+  - trigger: state
+    entity_id: binary_sensor.nighttime
+    to: 'off'
     id: morning
   - trigger: numeric_state
-    entity_id:
-    - sensor.illuminance
+    entity_id: sun.sun
+    attribute: elevation
+    above: 40
+    id: midmorning
+  - trigger: state
+    entity_id: binary_sensor.nighttime
+    to: 'on'
     for:
-      hours: 0
       minutes: 5
-      seconds: 0
-    below: 800
     id: darken
-  - trigger: sun
-    event: sunset
-    offset: -00:15:00
-    id: sunset
   conditions: []
   actions:
   - choose:
     - conditions:
       - condition: trigger
-        id:
-        - morning
+        id: morning
       sequence:
-      - sequence:
-        - action: cover.open_cover
-          metadata: {}
-          target:
-            entity_id:
-            - cover.dining_room_shade
-            - cover.front_office_shade
-            - cover.lounge_shade
-          data: {}
-        - action: cover.stop_cover
-          metadata: {}
-          target:
-            entity_id: cover.kitchen_shade
-          data: {}
+      - action: cover.open_cover
+        metadata: {}
+        target:
+          entity_id:
+          - cover.dining_room_shade
+          - cover.front_office_shade
+          - cover.back_office_shades
+          - cover.lounge_shade
+        data: {}
+      - action: cover.set_cover_position
+        metadata: {}
+        target:
+          entity_id:
+          - cover.living_room_shade
+          - cover.kitchen_shades
+        data:
+          position: 40
     - conditions:
       - condition: trigger
-        id:
-        - sunset
+        id: midmorning
+      sequence:
+      - action: cover.open_cover
+        metadata: {}
+        target:
+          entity_id:
+          - cover.living_room_shade
+          - cover.kitchen_shades
+        data: {}
+    - conditions:
+      - condition: trigger
+        id: darken
       sequence:
       - action: cover.close_cover
         metadata: {}
@@ -311,49 +323,27 @@
   alias: Front Yard Light Controller
   description: ''
   triggers:
-  - trigger: numeric_state
-    entity_id:
-    - sensor.illuminance
-    for:
-      hours: 0
-      minutes: 5
-      seconds: 0
-    below: 1000
-    id: darken
-  - trigger: numeric_state
-    entity_id:
-    - sensor.illuminance
-    for:
-      hours: 0
-      minutes: 5
-      seconds: 0
-    above: 1500
-    id: lighten
-  - trigger: time
-    at: '22:00:00'
-    id: night
   - trigger: time
     at: 07:00:00
-    id: morning
-  conditions:
-  - condition: time
-    after: 05:59:59
-    before: '23:01:01'
-  - condition: or
-    conditions:
-    - condition: numeric_state
-      entity_id: sensor.illuminance
-      below: 1000
-    - condition: numeric_state
-      entity_id: sensor.illuminance
-      above: 1500
+    id: morning-on
+  - trigger: time
+    at: 09:00:00
+    id: morning-off
+  - trigger: sun
+    event: sunset
+    offset: 0
+    id: evening-on
+  - trigger: time
+    at: '23:00:00'
+    id: evening-off
+  conditions: []
   actions:
   - choose:
     - conditions:
       - condition: trigger
         id:
-        - darken
-        - morning
+        - morning-on
+        - evening-on
       sequence:
       - action: light.turn_on
         metadata: {}
@@ -363,8 +353,8 @@
     - conditions:
       - condition: trigger
         id:
-        - lighten
-        - night
+        - morning-off
+        - evening-off
       sequence:
       - action: light.turn_off
         metadata: {}
@@ -918,4 +908,42 @@
         data:
           item: Change Hot Tub Water
           due_date: '{{ (now() + timedelta(days=14)).strftime(''%Y-%m-%d'') }}'
+  mode: single
+- id: '1768960048388'
+  alias: Daily maintenance list
+  description: ''
+  triggers:
+  - trigger: time
+    at: 08:00:00
+  conditions:
+  - condition: numeric_state
+    entity_id: todo.maintenance
+    above: 0
+  actions:
+  - action: todo.get_items
+    metadata: {}
+    target:
+      entity_id: todo.maintenance
+    data:
+      status: needs_action
+    response_variable: todo_items
+  - action: notify.email_todd_gardner
+    metadata: {}
+    data:
+      title: Home maintenance for {{ now().strftime('%A, %B %-d') }}
+      message: "You have the following maintenance items that need to be done:\n{%
+        for item in todo_items['todo.maintenance']['items'] %} \n  • {{ item.summary
+        }}\n{% endfor %}\n"
+  mode: single
+- id: '1779678707670'
+  alias: Indoor Dimmer Brightness Control
+  description: ''
+  triggers:
+  - trigger: numeric_state
+    entity_id:
+    - sensor.illuminance
+    below: 100
+    id: Below100
+  conditions: []
+  actions: []
   mode: single
