@@ -1,10 +1,9 @@
 - id: '1727619363042'
-  alias: Commons Shade Controller
-  description: Control the raising and lowering of window shades in the common areas
-    of the house.
+  alias: Shade Controller
+  description: Control the raising and lowering of window shades in the house.
   triggers:
   - trigger: state
-    entity_id: binary_sensor.nighttime
+    entity_id: binary_sensor.night_time
     to: 'off'
     id: morning
   - trigger: numeric_state
@@ -13,12 +12,15 @@
     above: 40
     id: midmorning
   - trigger: state
-    entity_id: binary_sensor.nighttime
+    entity_id: binary_sensor.night_time
     to: 'on'
     for:
       minutes: 5
     id: darken
-  conditions: []
+  conditions:
+  - condition: state
+    entity_id: binary_sensor.household_in_town
+    state: 'on'
   actions:
   - choose:
     - conditions:
@@ -31,7 +33,6 @@
           entity_id:
           - cover.dining_room_shade
           - cover.front_office_shade
-          - cover.back_office_shades
           - cover.lounge_shade
         data: {}
       - action: cover.set_cover_position
@@ -42,17 +43,20 @@
           - cover.kitchen_shades
         data:
           position: 40
+      - action: button.press
+        metadata: {}
+        target:
+          entity_id: button.back_office_shade_preset
+        data: {}
     - conditions:
       - condition: trigger
         id: midmorning
       sequence:
       - action: cover.open_cover
         metadata: {}
-        target:
-          entity_id:
-          - cover.living_room_shade
-          - cover.kitchen_shades
         data: {}
+        target:
+          entity_id: cover.window_shades
     - conditions:
       - condition: trigger
         id: darken
@@ -308,8 +312,8 @@
       entity_id: binary_sensor.dryer_status
       state: 'off'
   - condition: state
-    entity_id: binary_sensor.quiet_hours
-    state: 'off'
+    entity_id: schedule.active_hours
+    state: 'on'
   actions:
   - action: script.notify_at_home
     metadata: {}
@@ -320,45 +324,79 @@
         %-d, %-I:%M %p') }}
   mode: single
 - id: '1764726731546'
-  alias: Front Yard Light Controller
-  description: ''
+  alias: Exterior Lights Controller
+  description: 'On during nighttime active hours. Stays on indefinitely when someone
+    is nearby but not home. Skips entirely when household is out of town.
+
+    '
   triggers:
-  - trigger: time
-    at: 07:00:00
-    id: morning-on
-  - trigger: time
-    at: 09:00:00
-    id: morning-off
-  - trigger: sun
-    event: sunset
-    offset: 0
-    id: evening-on
-  - trigger: time
-    at: '23:00:00'
-    id: evening-off
-  conditions: []
+  - trigger: state
+    entity_id: binary_sensor.night_time
+    to: 'on'
+    id: night-on
+  - trigger: state
+    entity_id: binary_sensor.night_time
+    to: 'off'
+    id: night-off
+  - trigger: state
+    entity_id: schedule.active_hours
+    to: 'on'
+    id: active-on
+  - trigger: state
+    entity_id: schedule.active_hours
+    to: 'off'
+    id: active-off
+  - trigger: template
+    value_template: "{% set ns = namespace(nearby_away=false) %} {% for person in
+      expand('group.household') %}\n  {% if person.state != 'home'\n     and distance('zone.home',
+      person.entity_id) | float(999) < 80 %}\n    {% set ns.nearby_away = true %}\n
+      \ {% endif %}\n{% endfor %} {{ not ns.nearby_away }}\n"
+    for: 00:05:00
+    id: person-arrived
+    alias: Household in town and home
+  conditions:
+  - condition: state
+    entity_id: binary_sensor.household_in_town
+    state: 'on'
   actions:
   - choose:
     - conditions:
       - condition: trigger
         id:
-        - morning-on
-        - evening-on
+        - night-on
+        - active-on
+      - condition: state
+        entity_id: binary_sensor.night_time
+        state: 'on'
+      - condition: state
+        entity_id: schedule.active_hours
+        state: 'on'
       sequence:
       - action: light.turn_on
-        metadata: {}
-        data: {}
         target:
           entity_id: light.front_yard_lights
     - conditions:
       - condition: trigger
         id:
-        - morning-off
-        - evening-off
+        - night-off
+        - active-off
+        - person-arrived
+      - condition: or
+        conditions:
+        - condition: state
+          entity_id: binary_sensor.night_time
+          state: 'off'
+        - condition: state
+          entity_id: schedule.active_hours
+          state: 'off'
+      - condition: template
+        value_template: "{% set ns = namespace(nearby_away=false) %} {% for person
+          in expand('group.household') %}\n  {% if person.state != 'home'\n     and
+          distance('zone.home', person.entity_id) | float(999) < 50 %}\n    {% set
+          ns.nearby_away = true %}\n  {% endif %}\n{% endfor %} {{ not ns.nearby_away
+          }}\n"
       sequence:
       - action: light.turn_off
-        metadata: {}
-        data: {}
         target:
           entity_id: light.front_yard_lights
   mode: single
@@ -373,8 +411,8 @@
     trigger: device
   conditions:
   - condition: state
-    entity_id: binary_sensor.quiet_hours
-    state: 'off'
+    entity_id: schedule.active_hours
+    state: 'on'
   actions:
   - action: script.notify_at_home
     metadata: {}
@@ -935,15 +973,122 @@
         for item in todo_items['todo.maintenance']['items'] %} \n  • {{ item.summary
         }}\n{% endfor %}\n"
   mode: single
-- id: '1779678707670'
-  alias: Indoor Dimmer Brightness Control
-  description: ''
+- id: '1780174294556'
+  alias: Primary Bedroom Controller
+  description: 'Sets custom brightness based on night_time. Runs bedtime sequence:
+    on at 9pm, partial off at 9:30pm, sconces fade to off by 10:15pm.
+
+    '
   triggers:
-  - trigger: numeric_state
-    entity_id:
-    - sensor.illuminance
-    below: 100
-    id: Below100
-  conditions: []
-  actions: []
+  - trigger: state
+    entity_id: binary_sensor.night_time
+    to: 'on'
+    id: night-on
+  - trigger: state
+    entity_id: binary_sensor.night_time
+    to: 'off'
+    id: night-off
+  - trigger: time
+    at: '21:00:00'
+    id: bedtime-on
+  - trigger: time
+    at: '21:30:00'
+    id: bedtime-partial
+  - trigger: time
+    at: '22:00:00'
+    id: bedtime-dim
+  conditions:
+  - condition: state
+    entity_id: binary_sensor.household_in_town
+    state: 'on'
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: night-on
+      sequence:
+      - action: zwave_js.set_config_parameter
+        target:
+          entity_id:
+          - light.primary_bedroom_main_light_switch
+          - light.primary_bedroom_hall_light_switch
+          - light.primary_bedroom_sconce_light_switch
+        data:
+          parameter: 18
+          value: 30
+      - action: light.turn_on
+        target:
+          entity_id: "{{ ['light.primary_bedroom_main_light_switch',\n    'light.primary_bedroom_hall_light_switch',\n
+            \   'light.primary_bedroom_sconce_light_switch']\n   | select('is_state',
+            'on') | list }}\n"
+        data:
+          brightness_pct: 30
+          transition: 2
+    - conditions:
+      - condition: trigger
+        id: night-off
+      sequence:
+      - action: zwave_js.set_config_parameter
+        target:
+          entity_id:
+          - light.primary_bedroom_main_light_switch
+          - light.primary_bedroom_hall_light_switch
+          - light.primary_bedroom_sconce_light_switch
+        data:
+          parameter: 18
+          value: 99
+      - action: light.turn_on
+        target:
+          entity_id: "{{ ['light.primary_bedroom_main_light_switch',\n    'light.primary_bedroom_hall_light_switch',\n
+            \   'light.primary_bedroom_sconce_light_switch']\n   | select('is_state',
+            'on') | list }}\n"
+        data:
+          brightness_pct: 100
+          transition: 2
+    - conditions:
+      - condition: trigger
+        id: bedtime-on
+      sequence:
+      - action: light.turn_on
+        target:
+          entity_id:
+          - light.primary_bedroom_main_light_switch
+          - light.primary_bedroom_hall_light_switch
+          - light.primary_bedroom_sconce_light_switch
+        data:
+          brightness_pct: '{{ 30 if is_state(''binary_sensor.night_time'', ''on'')
+            else 100 }}
+
+            '
+      - action: cover.close_cover
+        metadata: {}
+        target:
+          entity_id:
+          - cover.primary_bathroom_shade
+          - cover.primary_bedroom_shades
+        data: {}
+      - action: media_player.select_source
+        metadata: {}
+        target:
+          entity_id: media_player.primary_bedroom_roku
+        data:
+          source: Aquatic Life
+    - conditions:
+      - condition: trigger
+        id: bedtime-partial
+      sequence:
+      - action: light.turn_off
+        target:
+          entity_id:
+          - light.primary_bedroom_main_light_switch
+          - light.primary_bedroom_hall_light_switch
+    - conditions:
+      - condition: trigger
+        id: bedtime-dim
+      sequence:
+      - action: light.turn_off
+        target:
+          entity_id: light.primary_bedroom_sconce_light_switch
+        data:
+          transition: 900
   mode: single
