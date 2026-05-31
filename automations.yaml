@@ -1092,3 +1092,45 @@
         data:
           transition: 900
   mode: single
+- id: garage_obstruction_auto_reboot
+  alias: Garage Obstruction Auto-Reboot
+  description: Reboots the stuck obstruction sensor after 1 minute of obstruction
+  triggers:
+  - trigger: state
+    entity_id: binary_sensor.garage_single_obstruction
+    to: 'on'
+    for:
+      minutes: 1
+    id: single
+  - trigger: state
+    entity_id: binary_sensor.garage_double_obstruction
+    to: 'on'
+    for:
+      minutes: 1
+    id: double
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: single
+      sequence:
+      - action: button.press
+        target:
+          entity_id: button.konnected_b87d1c_restart
+      - action: logbook.log
+        data:
+          name: System
+          message: rebooted garage single door — stuck obstruction sensor
+          entity_id: input_boolean.log_event
+    - conditions:
+      - condition: trigger
+        id: double
+      sequence:
+      - action: button.press
+        target:
+          entity_id: button.konnected_f0f5bd514400_restart
+      - action: logbook.log
+        data:
+          name: System
+          message: rebooted garage double door — stuck obstruction sensor
+          entity_id: input_boolean.log_event

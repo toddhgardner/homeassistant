@@ -1,0 +1,20 @@
+# Log
+# General
+#
+---
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: general/log
+
+    input_boolean.log_event:
+      <<: *package
+
+#
+# Dummy sensor we'll use to attach log events
+#
+input_boolean:
+  log_event:
+    name: "System Event"
+    icon: mdi:text-box-outline
