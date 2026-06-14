@@ -62,28 +62,114 @@
       supported_color_modes:
       - brightness
       color_mode:
-      brightness: 5
+      brightness:
       device_id: '4'
       zone_id: '2'
       friendly_name: Theater Main Lights
       supported_features: 32
-      state: 'on'
+      state: 'off'
     light.theater_sconces:
       supported_color_modes:
       - brightness
       color_mode: brightness
-      brightness: 25
+      brightness: 51
       device_id: '2'
       zone_id: '1'
       friendly_name: Theater Sconces
       supported_features: 32
       state: 'on'
-    cover.lounge_shade:
-      current_position: 0
-      assumed_state: true
-      device_class: shade
-      friendly_name: Lounge Shade
-      supported_features: 15
-      state: closed
   icon: mdi:lightbulb-on-30
+  metadata: {}
+- id: '1780708336655'
+  name: Primary Bedroom Bedtime - Getting Ready
+  entities:
+    light.primary_bedroom_hall_light_switch:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 52
+      friendly_name: Primary Bedroom Hall Light Switch
+      supported_features: 32
+      state: 'on'
+    light.primary_bedroom_main_light_switch:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 52
+      friendly_name: Primary Bedroom Main Light Switch
+      supported_features: 32
+      state: 'on'
+    light.primary_bedroom_sconce_light_switch:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 52
+      friendly_name: Primary Bedroom Sconce Light Switch
+      supported_features: 32
+      state: 'on'
+    media_player.primary_bedroom_roku:
+      app_name: Aquatic Life
+      source: Aquatic Life
+      device_class: receiver
+      friendly_name: Primary Bedroom Roku
+      supported_features: 151481
+      media_content_type: app
+      app_id: '123095'
+      state: 'on'
+  metadata: {}
+- id: '1780708543707'
+  name: Primary Bedroom Bedtime - Wind down
+  entities:
+    light.primary_bedroom_hall_light_switch:
+      supported_color_modes:
+      - brightness
+      color_mode:
+      brightness:
+      friendly_name: Primary Bedroom Hall Light Switch
+      supported_features: 32
+      state: 'off'
+    light.primary_bedroom_main_light_switch:
+      supported_color_modes:
+      - brightness
+      color_mode:
+      brightness:
+      friendly_name: Primary Bedroom Main Light Switch
+      supported_features: 32
+      state: 'off'
+    light.primary_bedroom_sconce_light_switch:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 26
+      friendly_name: Primary Bedroom Sconce Light Switch
+      supported_features: 32
+      state: 'on'
+  metadata: {}
+- id: '1780708691095'
+  name: Primary Bedroom Bedtime - Lights out
+  entities:
+    light.primary_bedroom_hall_light_switch:
+      supported_color_modes:
+      - brightness
+      color_mode:
+      brightness:
+      friendly_name: Primary Bedroom Hall Light Switch
+      supported_features: 32
+      state: 'off'
+    light.primary_bedroom_main_light_switch:
+      supported_color_modes:
+      - brightness
+      color_mode:
+      brightness:
+      friendly_name: Primary Bedroom Main Light Switch
+      supported_features: 32
+      state: 'off'
+    light.primary_bedroom_sconce_light_switch:
+      supported_color_modes:
+      - brightness
+      color_mode:
+      brightness:
+      friendly_name: Primary Bedroom Sconce Light Switch
+      supported_features: 32
+      state: 'off'
   metadata: {}

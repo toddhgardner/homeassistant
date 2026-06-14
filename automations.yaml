@@ -1,72 +1,3 @@
-- id: '1727619363042'
-  alias: Shade Controller
-  description: Control the raising and lowering of window shades in the house.
-  triggers:
-  - trigger: state
-    entity_id: binary_sensor.night_time
-    to: 'off'
-    id: morning
-  - trigger: numeric_state
-    entity_id: sun.sun
-    attribute: elevation
-    above: 40
-    id: midmorning
-  - trigger: state
-    entity_id: binary_sensor.night_time
-    to: 'on'
-    for:
-      minutes: 5
-    id: darken
-  conditions:
-  - condition: state
-    entity_id: binary_sensor.household_in_town
-    state: 'on'
-  actions:
-  - choose:
-    - conditions:
-      - condition: trigger
-        id: morning
-      sequence:
-      - action: cover.open_cover
-        metadata: {}
-        target:
-          entity_id:
-          - cover.dining_room_shade
-          - cover.front_office_shade
-          - cover.lounge_shade
-        data: {}
-      - action: cover.set_cover_position
-        metadata: {}
-        target:
-          entity_id:
-          - cover.living_room_shade
-          - cover.kitchen_shades
-        data:
-          position: 40
-      - action: button.press
-        metadata: {}
-        target:
-          entity_id: button.back_office_shade_preset
-        data: {}
-    - conditions:
-      - condition: trigger
-        id: midmorning
-      sequence:
-      - action: cover.open_cover
-        metadata: {}
-        data: {}
-        target:
-          entity_id: cover.window_shades
-    - conditions:
-      - condition: trigger
-        id: darken
-      sequence:
-      - action: cover.close_cover
-        metadata: {}
-        target:
-          entity_id: cover.window_shades
-        data: {}
-  mode: single
 - id: '1764032833582'
   alias: Back Office Auto Link Switch
   description: ''
@@ -331,9 +262,15 @@
     '
   triggers:
   - trigger: state
-    entity_id: binary_sensor.night_time
-    to: 'on'
+    entity_id:
+    - binary_sensor.night_time
+    to:
+    - 'on'
     id: night-on
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
   - trigger: state
     entity_id: binary_sensor.night_time
     to: 'off'
@@ -378,7 +315,6 @@
     - conditions:
       - condition: trigger
         id:
-        - night-off
         - active-off
         - person-arrived
       - condition: or
@@ -395,6 +331,14 @@
           distance('zone.home', person.entity_id) | float(999) < 50 %}\n    {% set
           ns.nearby_away = true %}\n  {% endif %}\n{% endfor %} {{ not ns.nearby_away
           }}\n"
+      sequence:
+      - action: light.turn_off
+        target:
+          entity_id: light.front_yard_lights
+    - conditions:
+      - condition: trigger
+        id:
+        - night-off
       sequence:
       - action: light.turn_off
         target:
@@ -431,14 +375,13 @@
   - trigger: numeric_state
     entity_id:
     - sensor.izzys_iphone_battery_level
-    attribute: battery_level
     below: 20
     id: battery
   conditions:
   - condition: not
     conditions:
     - condition: state
-      entity_id: person.isabelle
+      entity_id: person.isabelle_gardner
       state:
       - home
   - alias: Has not run in 8 hours
@@ -980,22 +923,11 @@
 
     '
   triggers:
-  - trigger: state
-    entity_id: binary_sensor.night_time
-    to: 'on'
-    id: night-on
-  - trigger: state
-    entity_id: binary_sensor.night_time
-    to: 'off'
-    id: night-off
   - trigger: time
     at: '21:00:00'
     id: bedtime-on
   - trigger: time
-    at: '21:30:00'
-    id: bedtime-partial
-  - trigger: time
-    at: '22:00:00'
+    at: '22:30:00'
     id: bedtime-dim
   conditions:
   - condition: state
@@ -1005,92 +937,38 @@
   - choose:
     - conditions:
       - condition: trigger
-        id: night-on
-      sequence:
-      - action: zwave_js.set_config_parameter
-        target:
-          entity_id:
-          - light.primary_bedroom_main_light_switch
-          - light.primary_bedroom_hall_light_switch
-          - light.primary_bedroom_sconce_light_switch
-        data:
-          parameter: 18
-          value: 30
-      - action: light.turn_on
-        target:
-          entity_id: "{{ ['light.primary_bedroom_main_light_switch',\n    'light.primary_bedroom_hall_light_switch',\n
-            \   'light.primary_bedroom_sconce_light_switch']\n   | select('is_state',
-            'on') | list }}\n"
-        data:
-          brightness_pct: 30
-          transition: 2
-    - conditions:
-      - condition: trigger
-        id: night-off
-      sequence:
-      - action: zwave_js.set_config_parameter
-        target:
-          entity_id:
-          - light.primary_bedroom_main_light_switch
-          - light.primary_bedroom_hall_light_switch
-          - light.primary_bedroom_sconce_light_switch
-        data:
-          parameter: 18
-          value: 99
-      - action: light.turn_on
-        target:
-          entity_id: "{{ ['light.primary_bedroom_main_light_switch',\n    'light.primary_bedroom_hall_light_switch',\n
-            \   'light.primary_bedroom_sconce_light_switch']\n   | select('is_state',
-            'on') | list }}\n"
-        data:
-          brightness_pct: 100
-          transition: 2
-    - conditions:
-      - condition: trigger
         id: bedtime-on
       sequence:
-      - action: light.turn_on
-        target:
-          entity_id:
-          - light.primary_bedroom_main_light_switch
-          - light.primary_bedroom_hall_light_switch
-          - light.primary_bedroom_sconce_light_switch
-        data:
-          brightness_pct: '{{ 30 if is_state(''binary_sensor.night_time'', ''on'')
-            else 100 }}
-
-            '
-      - action: cover.close_cover
+      - action: scene.turn_on
         metadata: {}
         target:
-          entity_id:
-          - cover.primary_bathroom_shade
-          - cover.primary_bedroom_shades
+          entity_id: scene.primary_bedroom_wind_down
         data: {}
-      - action: media_player.select_source
-        metadata: {}
-        target:
-          entity_id: media_player.primary_bedroom_roku
-        data:
-          source: Aquatic Life
-    - conditions:
-      - condition: trigger
-        id: bedtime-partial
-      sequence:
-      - action: light.turn_off
-        target:
+      - wait_for_trigger:
+        - trigger: state
           entity_id:
-          - light.primary_bedroom_main_light_switch
-          - light.primary_bedroom_hall_light_switch
+          - media_player.primary_bedroom_roku
+          to:
+          - playing
+        timeout:
+          hours: 1
+          minutes: 30
+          seconds: 0
+          milliseconds: 0
+      - action: scene.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: scene.primary_bedroom_bedtime_wind_down
     - conditions:
       - condition: trigger
         id: bedtime-dim
       sequence:
-      - action: light.turn_off
+      - action: scene.turn_on
+        metadata: {}
+        data: {}
         target:
-          entity_id: light.primary_bedroom_sconce_light_switch
-        data:
-          transition: 900
+          entity_id: scene.primary_bedroom_bedtime_lights_out
   mode: single
 - id: garage_obstruction_auto_reboot
   alias: Garage Obstruction Auto-Reboot
@@ -1134,3 +1012,405 @@
           name: System
           message: rebooted garage double door — stuck obstruction sensor
           entity_id: input_boolean.log_event
+- id: '1780258698083'
+  alias: Reconnect Apple TV
+  description: Force state refresh on reconnect; reload integration each morning
+  triggers:
+  - trigger: state
+    alias: Apple TV reconnected
+    id: reconnect
+    entity_id: media_player.home_theater
+    from: unknown
+    to: idle
+  - trigger: time
+    alias: Morning reload
+    id: morning
+    at: 08:00:00
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: reconnect
+      sequence:
+      - action: homeassistant.reload_config_entry
+        data:
+          entry_id: 01K02HJ0VPR6SX0A3ZWK66Q35F
+      - action: homeassistant.update_entity
+        target:
+          entity_id: media_player.home_theater
+        data: {}
+      - action: logbook.log
+        data:
+          name: System
+          message: forced apple tv state refresh after reconnect
+          entity_id: input_boolean.log_event
+    - conditions:
+      - condition: trigger
+        id: morning
+      sequence:
+      - action: homeassistant.reload_config_entry
+        data:
+          entry_id: 01K02HJ0VPR6SX0A3ZWK66Q35F
+  mode: single
+- id: '1780260597562'
+  alias: Switch HVAC Heat and Cool
+  description: 'At 8am: switches all thermostats between heat and cool based on indoor
+    average temp and today''s forecast high. Only acts when all three are already
+    in the same mode.
+
+    '
+  triggers:
+  - trigger: time
+    at: 08:00:00
+    id: check_heat
+  conditions: []
+  actions:
+  - action: weather.get_forecasts
+    target:
+      entity_id: weather.forecast_home
+    data:
+      type: daily
+    response_variable: forecast
+  - choose:
+    - conditions:
+      - alias: Indoor avg below 67°F
+        condition: numeric_state
+        entity_id: sensor.average_current_temperature
+        below: 67
+      - alias: Forecast high below 65°F
+        condition: template
+        value_template: '{{ forecast[''weather.forecast_home''][''forecast''][0][''temperature'']
+          | float(999) < 65 }}
+
+          '
+      sequence:
+      - action: climate.set_hvac_mode
+        target:
+          entity_id:
+          - climate.basement_thermostat
+          - climate.main_floor_thermostat
+          - climate.upstairs_thermostat
+        data:
+          hvac_mode: heat
+      - action: logbook.log
+        data:
+          name: System
+          message: 'switched all thermostats to heat — indoor avg {{ states(''sensor.average_indoor_temperature'')
+            }}°F, forecast high {{ forecast[''weather.forecast_home''][''forecast''][0][''temperature'']
+            }}°F
+
+            '
+          entity_id: input_boolean.log_event
+    - conditions:
+      - alias: Indoor avg above 72°F
+        condition: numeric_state
+        entity_id: sensor.average_current_temperature
+        above: 72
+      - alias: Forecast high above 70°F
+        condition: template
+        value_template: '{{ forecast[''weather.forecast_home''][''forecast''][0][''temperature'']
+          | float(0) > 70 }}
+
+          '
+      sequence:
+      - action: climate.set_hvac_mode
+        target:
+          entity_id:
+          - climate.basement_thermostat
+          - climate.main_floor_thermostat
+          - climate.upstairs_thermostat
+        data:
+          hvac_mode: cool
+      - action: logbook.log
+        data:
+          name: System
+          message: 'switched all thermostats to cool — indoor avg {{ states(''sensor.average_indoor_temperature'')
+            }}°F, forecast high {{ forecast[''weather.forecast_home''][''forecast''][0][''temperature'']
+            }}°F
+
+            '
+          entity_id: input_boolean.log_event
+- id: '1780708097389'
+  alias: Dimmer Brightness Controller
+  description: "Sets custom brightness based on night_time. \n"
+  triggers:
+  - trigger: state
+    entity_id: binary_sensor.night_time
+    to: 'on'
+    id: night-on
+  - trigger: state
+    entity_id: binary_sensor.night_time
+    to: 'off'
+    id: night-off
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: night-on
+      sequence:
+      - action: zwave_js.set_config_parameter
+        target:
+          entity_id:
+          - light.primary_bedroom_main_light_switch
+          - light.primary_bedroom_hall_light_switch
+          - light.primary_bedroom_sconce_light_switch
+        data:
+          parameter: 18
+          value: '20'
+      - action: light.turn_on
+        target:
+          entity_id: "{{ ['light.primary_bedroom_main_light_switch',\n    'light.primary_bedroom_hall_light_switch',\n
+            \   'light.primary_bedroom_sconce_light_switch']\n   | select('is_state',
+            'on') | list }}\n"
+        data:
+          transition: 2
+          brightness_pct: 20
+    - conditions:
+      - condition: trigger
+        id: night-off
+      sequence:
+      - action: zwave_js.set_config_parameter
+        target:
+          entity_id:
+          - light.primary_bedroom_main_light_switch
+          - light.primary_bedroom_hall_light_switch
+          - light.primary_bedroom_sconce_light_switch
+        data:
+          parameter: 18
+          value: 99
+      - action: light.turn_on
+        target:
+          entity_id: "{{ ['light.primary_bedroom_main_light_switch',\n    'light.primary_bedroom_hall_light_switch',\n
+            \   'light.primary_bedroom_sconce_light_switch']\n   | select('is_state',
+            'on') | list }}\n"
+        data:
+          brightness_pct: 100
+          transition: 2
+  mode: single
+- id: '1780761665177'
+  alias: Shade Controller
+  description: Event-driven shade control based on sun position and direction.
+  triggers:
+  - trigger: state
+    alias: Morning Common
+    entity_id: binary_sensor.night_time
+    to: 'off'
+    id: morning_common
+  - trigger: state
+    alias: Morning Bedroom
+    entity_id: schedule.bedroom_open_hours
+    to: 'on'
+    id: morning_bedroom
+  - trigger: state
+    alias: North Sun In
+    entity_id: binary_sensor.north_direct_sun
+    to: 'on'
+    id: north_in
+  - trigger: state
+    alias: North Sun Out
+    entity_id: binary_sensor.north_direct_sun
+    to: 'off'
+    id: north_out
+  - trigger: state
+    alias: East Sun In
+    entity_id: binary_sensor.east_direct_sun
+    to: 'on'
+    id: east_in
+  - trigger: state
+    alias: East Sun Out
+    entity_id: binary_sensor.east_direct_sun
+    to: 'off'
+    id: east_out
+  - trigger: state
+    alias: South Sun In
+    entity_id: binary_sensor.south_direct_sun
+    to: 'on'
+    id: south_in
+  - trigger: state
+    alias: South Sun Out
+    entity_id: binary_sensor.south_direct_sun
+    to: 'off'
+    id: south_out
+  - trigger: state
+    alias: West Sun In
+    entity_id: binary_sensor.west_direct_sun
+    to: 'on'
+    id: west_in
+  - trigger: state
+    alias: West Sun Out
+    entity_id: binary_sensor.west_direct_sun
+    to: 'off'
+    id: west_out
+  - alias: Darken
+    trigger: state
+    entity_id:
+    - binary_sensor.night_time
+    to:
+    - 'on'
+    id: darken
+  conditions:
+  - condition: state
+    entity_id: binary_sensor.household_in_town
+    state: 'on'
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: morning_common
+      - condition: time
+        before: '12:00:00'
+      sequence:
+      - parallel:
+        - sequence:
+          - if:
+            - condition: state
+              entity_id: binary_sensor.north_direct_sun
+              state: 'on'
+            then:
+            - action: script.north_shades
+              data:
+                action: partial
+            else:
+            - action: script.north_shades
+              data:
+                action: open
+        - sequence:
+          - if:
+            - condition: state
+              entity_id: binary_sensor.east_direct_sun
+              state: 'on'
+            then:
+            - action: script.east_shades
+              data:
+                action: partial
+            else:
+            - action: script.east_shades
+              data:
+                action: open
+        - action: script.south_shades
+          data:
+            action: open
+        - action: script.west_shades
+          data:
+            action: open
+    - conditions:
+      - condition: trigger
+        id: morning_bedroom
+      - condition: state
+        entity_id: binary_sensor.night_time
+        state: 'off'
+      sequence:
+      - parallel:
+        - sequence:
+          - if:
+            - condition: state
+              entity_id: binary_sensor.north_direct_sun
+              state: 'on'
+            then:
+            - action: script.north_shades
+              data:
+                action: partial
+            else:
+            - action: script.north_shades
+              data:
+                action: open
+        - sequence:
+          - if:
+            - condition: state
+              entity_id: binary_sensor.east_direct_sun
+              state: 'on'
+            then:
+            - action: script.east_shades
+              data:
+                action: partial
+            else:
+            - action: script.east_shades
+              data:
+                action: open
+        - action: script.south_shades
+          data:
+            action: open
+    - conditions:
+      - condition: trigger
+        id: north_in
+      sequence:
+      - action: script.north_shades
+        data:
+          action: partial
+    - conditions:
+      - condition: trigger
+        id: north_out
+      - condition: state
+        entity_id: binary_sensor.night_time
+        state: 'off'
+      sequence:
+      - action: script.north_shades
+        data:
+          action: open
+    - conditions:
+      - condition: trigger
+        id: east_in
+      sequence:
+      - action: script.east_shades
+        data:
+          action: partial
+    - conditions:
+      - condition: trigger
+        id: east_out
+      - condition: state
+        entity_id: binary_sensor.night_time
+        state: 'off'
+      sequence:
+      - action: script.east_shades
+        data:
+          action: open
+    - conditions:
+      - condition: trigger
+        id: south_in
+      sequence:
+      - action: script.south_shades
+        data:
+          action: partial
+    - conditions:
+      - condition: trigger
+        id: south_out
+      - condition: state
+        entity_id: binary_sensor.night_time
+        state: 'off'
+      sequence:
+      - action: script.south_shades
+        data:
+          action: open
+    - conditions:
+      - condition: trigger
+        id: west_in
+      sequence:
+      - action: script.west_shades
+        data:
+          action: partial
+    - conditions:
+      - condition: trigger
+        id: west_out
+      - condition: state
+        entity_id: binary_sensor.night_time
+        state: 'off'
+      sequence:
+      - action: script.west_shades
+        data:
+          action: open
+    - conditions:
+      - condition: trigger
+        id: darken
+      sequence:
+      - repeat:
+          count: 3
+          sequence:
+          - action: cover.close_cover
+            continue_on_error: true
+            target:
+              entity_id: cover.window_shades
+          - delay:
+              seconds: 30
+  mode: queued
+  max: 4

@@ -57,3 +57,345 @@ set_cover_to_favorite:
             domain: cover
   alias: Set Cover to Favorite
   description: ''
+north_shades:
+  alias: North Shades
+  description: 'Open, partial, or close all north-facing shades. Repeats 3 times with
+    a 30 second pause. Includes bedroom shades if the bedroom schedule is active.
+
+    '
+  fields:
+    action:
+      description: 'Position to set: open, partial, or close'
+      required: true
+      selector:
+        select:
+          options:
+          - open
+          - partial
+          - close
+  sequence:
+  - repeat:
+      count: 3
+      sequence:
+      - choose:
+        - conditions:
+          - condition: template
+            value_template: '{{ action == ''open'' }}'
+            alias: Open
+          sequence:
+          - action: cover.open_cover
+            continue_on_error: true
+            target:
+              entity_id:
+              - cover.living_room_shade
+              - cover.kitchen_north_shade_outbound_bottom
+              - cover.back_office_north_shade
+          - action: cover.set_cover_position
+            continue_on_error: true
+            target:
+              entity_id: cover.lounge_shade_2
+            data:
+              position: 100
+          - if:
+            - condition: state
+              entity_id: schedule.bedroom_open_hours
+              state: 'on'
+            then:
+            - action: cover.open_cover
+              continue_on_error: true
+              target:
+                entity_id:
+                - cover.primary_bedroom_shades
+                - cover.primary_bathroom_shade
+                - cover.sams_bedroom_shade
+        - conditions:
+          - condition: template
+            value_template: '{{ action == ''partial'' }}'
+            alias: Partial
+          sequence:
+          - action: cover.set_cover_position
+            continue_on_error: true
+            target:
+              entity_id:
+              - cover.living_room_shade
+              - cover.kitchen_north_shade_outbound_bottom
+              - cover.lounge_shade_2
+            data:
+              position: 40
+          - action: button.press
+            continue_on_error: true
+            target:
+              entity_id: button.back_office_north_shade_preset
+          - if:
+            - condition: state
+              entity_id: schedule.bedroom_open_hours
+              state: 'on'
+            then:
+            - action: button.press
+              continue_on_error: true
+              target:
+                entity_id:
+                - button.primary_bedroom_shades_preset
+                - button.primary_bathroom_shade_preset
+                - button.sams_bedroom_shade_preset
+        - conditions:
+          - condition: template
+            value_template: '{{ action == ''close'' }}'
+            alias: Close
+          sequence:
+          - action: cover.close_cover
+            continue_on_error: true
+            target:
+              entity_id:
+              - cover.living_room_shade
+              - cover.kitchen_north_shade_outbound_bottom
+              - cover.lounge_shade_2
+              - cover.back_office_north_shade
+          - if:
+            - condition: state
+              entity_id: schedule.bedroom_open_hours
+              state: 'on'
+            then:
+            - action: cover.close_cover
+              continue_on_error: true
+              target:
+                entity_id:
+                - cover.primary_bedroom_shades
+                - cover.primary_bathroom_shade
+                - cover.sams_bedroom_shade
+      - delay:
+          seconds: 30
+  mode: queued
+  max: 3
+  icon: mdi:roller-shade
+east_shades:
+  alias: East Shades
+  description: 'Open, partial, or close all east-facing shades. Repeats 3 times with
+    a 30 second pause. Includes bedroom shades if the bedroom schedule is active.
+
+    '
+  fields:
+    action:
+      description: 'Position to set: open, partial, or close'
+      required: true
+      selector:
+        select:
+          options:
+          - open
+          - partial
+          - close
+  sequence:
+  - repeat:
+      count: 3
+      sequence:
+      - choose:
+        - conditions:
+          - condition: template
+            value_template: '{{ action == ''open'' }}'
+            alias: Open
+          sequence:
+          - action: cover.open_cover
+            continue_on_error: true
+            target:
+              entity_id: cover.kitchen_east_shade_outbound_bottom
+          - if:
+            - condition: state
+              entity_id: schedule.bedroom_open_hours
+              state: 'on'
+            then:
+            - action: cover.open_cover
+              continue_on_error: true
+              target:
+                entity_id:
+                - cover.game_room_shade
+                - cover.guest_bedroom_shade
+        - conditions:
+          - condition: template
+            value_template: '{{ action == ''partial'' }}'
+            alias: Partial
+          sequence:
+          - action: cover.set_cover_position
+            continue_on_error: true
+            target:
+              entity_id: cover.kitchen_east_shade_outbound_bottom
+            data:
+              position: 40
+          - if:
+            - condition: state
+              entity_id: schedule.bedroom_open_hours
+              state: 'on'
+            then:
+            - action: button.press
+              continue_on_error: true
+              target:
+                entity_id:
+                - button.game_room_shade_preset
+                - button.guest_bedroom_shade_preset
+        - conditions:
+          - condition: template
+            value_template: '{{ action == ''close'' }}'
+            alias: Close
+          sequence:
+          - action: cover.close_cover
+            continue_on_error: true
+            target:
+              entity_id: cover.kitchen_east_shade_outbound_bottom
+          - if:
+            - condition: state
+              entity_id: schedule.bedroom_open_hours
+              state: 'on'
+            then:
+            - action: cover.close_cover
+              continue_on_error: true
+              target:
+                entity_id:
+                - cover.game_room_shade
+                - cover.guest_bedroom_shade
+      - delay:
+          seconds: 30
+  mode: queued
+  max: 3
+  icon: mdi:roller-shade
+south_shades:
+  alias: South Shades
+  description: 'Open, partial, or close all south-facing shades. Repeats 3 times with
+    a 30 second pause. Includes bedroom shades if the bedroom schedule is active.
+
+    '
+  fields:
+    action:
+      description: 'Position to set: open, partial, or close'
+      required: true
+      selector:
+        select:
+          options:
+          - open
+          - partial
+          - close
+  sequence:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ action == ''open'' }}'
+        alias: Open
+      sequence:
+      - action: cover.open_cover
+        continue_on_error: true
+        target:
+          entity_id:
+          - cover.dining_room_shade
+          - cover.front_office_shade
+      - if:
+        - condition: state
+          entity_id: schedule.bedroom_open_hours
+          state: 'on'
+        then:
+        - action: cover.open_cover
+          continue_on_error: true
+          target:
+            entity_id: cover.izzy_s_bedroom_shade
+          data: {}
+          enabled: false
+    - conditions:
+      - condition: template
+        value_template: '{{ action == ''partial'' }}'
+        alias: Partial
+      sequence:
+      - action: button.press
+        continue_on_error: true
+        target:
+          entity_id:
+          - button.dining_room_shade_preset
+          - button.front_office_shade_preset
+      - if:
+        - condition: state
+          entity_id: schedule.bedroom_open_hours
+          state: 'on'
+        then:
+        - action: button.press
+          continue_on_error: true
+          target:
+            entity_id: button.izzy_s_bedroom_shade_izzys_bedroom_shade_preset
+          enabled: false
+    - conditions:
+      - condition: template
+        value_template: '{{ action == ''close'' }}'
+        alias: Close
+      sequence:
+      - action: cover.close_cover
+        continue_on_error: true
+        target:
+          entity_id:
+          - cover.dining_room_shade
+          - cover.front_office_shade
+      - if:
+        - condition: state
+          entity_id: schedule.bedroom_open_hours
+          state: 'on'
+        then:
+        - action: cover.close_cover
+          continue_on_error: true
+          target:
+            entity_id: cover.izzy_s_bedroom_shade
+          enabled: false
+  - repeat:
+      count: 3
+      sequence:
+      - delay:
+          seconds: 30
+  mode: queued
+  max: 3
+  icon: mdi:roller-shade
+west_shades:
+  alias: West Shades
+  description: 'Open, partial, or close all west-facing shades. Repeats 3 times with
+    a 30 second pause.
+
+    '
+  fields:
+    action:
+      description: 'Position to set: open, partial, or close'
+      required: true
+      selector:
+        select:
+          options:
+          - open
+          - partial
+          - close
+  sequence:
+  - repeat:
+      count: 3
+      sequence:
+      - choose:
+        - conditions:
+          - condition: template
+            value_template: '{{ action == ''open'' }}'
+            alias: Open
+          sequence:
+          - action: cover.open_cover
+            continue_on_error: true
+            target:
+              entity_id: cover.back_office_west_shade
+        - conditions:
+          - condition: template
+            value_template: '{{ action == ''partial'' }}'
+            alias: Partial
+          sequence:
+          - action: button.press
+            continue_on_error: true
+            target:
+              entity_id: button.back_office_west_shade_preset
+        - conditions:
+          - condition: template
+            value_template: '{{ action == ''close'' }}'
+            alias: Close
+          sequence:
+          - action: cover.close_cover
+            continue_on_error: true
+            target:
+              entity_id: cover.back_office_west_shade
+      - delay:
+          seconds: 30
+  mode: queued
+  max: 3
+  icon: mdi:roller-shade
