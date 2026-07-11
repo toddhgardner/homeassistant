@@ -1,0 +1,119 @@
+# Zooz Switch Common Config
+# System package
+#
+# Standard configuration for all Zooz wall switches and dimmers, targeting
+# the `zooz_switch` device label. To onboard a new switch: add the label,
+# run this script.
+#
+# Excluded on purpose (different parameter maps): ZEN14 outlet, ZSE44
+# leak sensor, ZAC36 valve, ZEN55 smoke relay, ZEN34 remote.
+#
+# IMPORTANT: on/off switches (ZEN71/ZEN76) and dimmers (ZEN72/ZEN77) use
+# DIFFERENT parameter numbers for LED and programming settings, and p15
+# means "LED brightness" on switches but "load control / smart bulb mode"
+# on dimmers. Never blanket-apply those params across both types.
+#
+# Settings applied everywhere (same meaning on both types):
+#   p3  auto turn-off timer     = 1440 min (24h failsafe)
+#   p8  state after power fail  = 2 (previous state)
+#
+# Switches (ZEN71/ZEN76):        Dimmers (ZEN72/ZEN77):
+#   p14 LED color        = 0      p23 LED color        = 0 (white)
+#   p15 LED brightness   = 2      p24 LED brightness   = 2 (low 30%)
+#   p17 paddle progrmng  = 1      p26 paddle progrmng  = 1 (disabled)
+#
+# Idempotent, safe to re-run. continue_on_error keeps one offline node
+# from blocking the rest.
+---
+
+script:
+  apply_zooz_switch_config:
+    alias: Apply Zooz Switch Common Config
+    description: >-
+      Applies the standard Zooz settings (auto-off failsafe, restore state
+      after power failure, white low-brightness LED, paddle programming
+      disabled) to every device labeled zooz_switch, with model-correct
+      parameter numbers for switches vs dimmers.
+    mode: single
+    sequence:
+      - alias: Resolve labeled devices by model
+        variables:
+          zooz_all: "{{ label_devices('zooz_switch') }}"
+          zooz_dimmers: >-
+            {{ (zooz_all | select('is_device_attr', 'model', 'ZEN72') | list)
+             + (zooz_all | select('is_device_attr', 'model', 'ZEN77') | list) }}
+          zooz_switches: "{{ zooz_all | reject('in', zooz_dimmers) | list }}"
+
+      # ---- Common to both types ----
+      - alias: "all p3: auto turn-off timer 1440 min"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_all }}"
+          parameter: 3
+          value: 1440
+        continue_on_error: true
+
+      - alias: "all p8: previous state after power failure"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_all }}"
+          parameter: 8
+          value: 2
+        continue_on_error: true
+
+      # ---- On/off switches (ZEN71/ZEN76) ----
+      - alias: "switches p14: LED color white"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_switches }}"
+          parameter: 14
+          value: 0
+        continue_on_error: true
+
+      - alias: "switches p15: LED brightness low"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_switches }}"
+          parameter: 15
+          value: 2
+        continue_on_error: true
+
+      - alias: "switches p17: paddle programming disabled"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_switches }}"
+          parameter: 17
+          value: 1
+        continue_on_error: true
+
+      # ---- Dimmers (ZEN72/ZEN77) ----
+      - alias: "dimmers p23: LED color white"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_dimmers }}"
+          parameter: 23
+          value: 0
+        continue_on_error: true
+
+      - alias: "dimmers p24: LED brightness low"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_dimmers }}"
+          parameter: 24
+          value: 2
+        continue_on_error: true
+
+      - alias: "dimmers p26: paddle programming disabled"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_dimmers }}"
+          parameter: 26
+          value: 1
+        continue_on_error: true
+
+      - alias: Log to system event log
+        action: logbook.log
+        data:
+          name: System
+          message: applied zooz switch common config to all labeled switches
+          entity_id: input_boolean.log_event
