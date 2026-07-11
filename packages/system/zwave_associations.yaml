@@ -1,0 +1,99 @@
+# Z-Wave Direct Associations
+# System package
+#
+# Record of all device-to-device Z-Wave associations. These live in the
+# switches themselves (Group 2, Basic Set), so HA is not involved at runtime.
+# This script re-applies them after a device reset or re-interview.
+#
+# Idempotent: adding a node already in the group is a no-op. Safe to run anytime.
+#
+# NOTE: If a device is factory reset and re-included, it gets a NEW node ID.
+# Update the node IDs below before re-running.
+#
+# Current associations (all S2 Authenticated):
+#   Pantry Upper ZEN71 (node 24)  <-> Kitchen Upper ZEN71 (node 15)
+#   Pantry Under ZEN71 (node 23)  <-> Kitchen Under ZEN71 (node 16)
+#   Kitchen Overhead Remote ZEN34 (node 25) -> Kitchen Overhead ZEN77 (node 18)
+#     Group 2 (on/off) + Group 3 (dimming)
+#
+# The ZEN34 remote is battery powered. Commands to it queue until it wakes.
+# After running this script, wake the remote (see ZEN34 manual) so the
+# association writes go through.
+---
+
+script:
+  restore_zwave_associations:
+    alias: Restore Z-Wave Direct Associations
+    description: >-
+      Re-applies device-to-device Z-Wave associations (Group 2, Basic Set)
+      for the kitchen/pantry cabinet light pairs. Run after a device reset,
+      re-interview, or firmware update if switches stop tracking each other.
+    mode: single
+    sequence:
+      - alias: Pantry Upper controls Kitchen Upper (node 15)
+        action: zwave_js.invoke_cc_api
+        target:
+          entity_id: switch.pantry_pantry_upper_cabinet_lights
+        data:
+          command_class: 133
+          method_name: addNodeIds
+          parameters: [2, 15]
+        continue_on_error: true
+
+      - alias: Kitchen Upper controls Pantry Upper (node 24)
+        action: zwave_js.invoke_cc_api
+        target:
+          entity_id: switch.kitchen_kitchen_upper_cabinet_lights
+        data:
+          command_class: 133
+          method_name: addNodeIds
+          parameters: [2, 24]
+        continue_on_error: true
+
+      - alias: Pantry Under controls Kitchen Under (node 16)
+        action: zwave_js.invoke_cc_api
+        target:
+          entity_id: switch.pantry_pantry_under_cabinet_lights
+        data:
+          command_class: 133
+          method_name: addNodeIds
+          parameters: [2, 16]
+        continue_on_error: true
+
+      - alias: Kitchen Under controls Pantry Under (node 23)
+        action: zwave_js.invoke_cc_api
+        target:
+          entity_id: switch.kitchen_kitchen_under_cabinet_lights
+        data:
+          command_class: 133
+          method_name: addNodeIds
+          parameters: [2, 23]
+        continue_on_error: true
+
+      # ZEN34 remote has no switch entity; battery sensor targets the same node
+      - alias: Kitchen Overhead Remote controls Kitchen Overhead on/off (node 18)
+        action: zwave_js.invoke_cc_api
+        target:
+          entity_id: sensor.kitchen_kitchen_overhead_lights_remote_switch_battery_level
+        data:
+          command_class: 133
+          method_name: addNodeIds
+          parameters: [2, 18]
+        continue_on_error: true
+
+      - alias: Kitchen Overhead Remote controls Kitchen Overhead dimming (node 18)
+        action: zwave_js.invoke_cc_api
+        target:
+          entity_id: sensor.kitchen_kitchen_overhead_lights_remote_switch_battery_level
+        data:
+          command_class: 133
+          method_name: addNodeIds
+          parameters: [3, 18]
+        continue_on_error: true
+
+      - alias: Log to system event log
+        action: logbook.log
+        data:
+          name: System
+          message: re-applied z-wave direct associations for kitchen/pantry cabinet lights
+          entity_id: input_boolean.log_event
