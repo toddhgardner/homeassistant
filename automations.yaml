@@ -1414,3 +1414,146 @@
               seconds: 30
   mode: queued
   max: 4
+- id: '1783784448729'
+  alias: Kitchen Light Controller
+  description: Motion and active-hours driven kitchen lighting. On with motion (6am
+    until active hours end) or at active hours start. Dims to idle after 60 min without
+    motion. All off when active hours ends. Turn-on requires household in town; turn-off
+    always runs.
+  triggers:
+  - trigger: state
+    entity_id: binary_sensor.common_motion
+    to: 'on'
+    id: motion-on
+  - trigger: state
+    entity_id: schedule.active_hours
+    to: 'on'
+    id: active-on
+  - trigger: state
+    entity_id: binary_sensor.common_motion
+    to: 'off'
+    for:
+      minutes: 60
+    id: motion-idle
+  - trigger: state
+    entity_id: schedule.active_hours
+    to: 'on'
+    for:
+      minutes: 60
+    id: active-idle-check
+  - trigger: state
+    entity_id: schedule.active_hours
+    to: 'off'
+    id: active-off
+  conditions: []
+  actions:
+  - choose:
+    - alias: 'ON: motion in allowed window (in town only)'
+      conditions:
+      - condition: trigger
+        id:
+        - motion-on
+      - condition: state
+        entity_id: binary_sensor.household_in_town
+        state: 'on'
+      - condition: or
+        conditions:
+        - condition: state
+          entity_id: schedule.active_hours
+          state: 'on'
+        - condition: time
+          after: 06:00:00
+          before: 08:00:00
+      sequence:
+      - action: light.turn_on
+        target:
+          entity_id:
+          - light.kitchen_kitchen_upper_cabinet_lights
+          - light.kitchen_kitchen_under_cabinet_lights
+      - action: light.turn_on
+        target:
+          entity_id: light.kitchen_kitchen_pendant_lights
+        data:
+          brightness_pct: 100
+    - alias: 'ON: active hours start (in town only)'
+      conditions:
+      - condition: trigger
+        id:
+        - active-on
+      - condition: state
+        entity_id: binary_sensor.household_in_town
+        state: 'on'
+      sequence:
+      - action: light.turn_on
+        target:
+          entity_id:
+          - light.kitchen_kitchen_upper_cabinet_lights
+          - light.kitchen_kitchen_under_cabinet_lights
+      - action: light.turn_on
+        target:
+          entity_id: light.kitchen_kitchen_pendant_lights
+        data:
+          brightness_pct: 100
+    - alias: 'IDLE: no motion for 60 min during active hours'
+      conditions:
+      - condition: trigger
+        id:
+        - motion-idle
+      - condition: state
+        entity_id: schedule.active_hours
+        state: 'on'
+      sequence:
+      - action: light.turn_off
+        target:
+          entity_id:
+          - light.kitchen_kitchen_upper_cabinet_lights
+          - light.kitchen_kitchen_under_cabinet_lights
+      - if:
+        - condition: state
+          entity_id: light.kitchen_kitchen_pendant_lights
+          state: 'on'
+        then:
+        - action: light.turn_on
+          target:
+            entity_id: light.kitchen_kitchen_pendant_lights
+          data:
+            brightness_pct: 30
+    - alias: 'IDLE: active hours started 60 min ago, still nobody'
+      conditions:
+      - condition: trigger
+        id:
+        - active-idle-check
+      - condition: state
+        entity_id: binary_sensor.common_motion
+        state: 'off'
+        for:
+          minutes: 60
+      sequence:
+      - action: light.turn_off
+        target:
+          entity_id:
+          - light.kitchen_kitchen_upper_cabinet_lights
+          - light.kitchen_kitchen_under_cabinet_lights
+      - if:
+        - condition: state
+          entity_id: light.kitchen_kitchen_pendant_lights
+          state: 'on'
+        then:
+        - action: light.turn_on
+          target:
+            entity_id: light.kitchen_kitchen_pendant_lights
+          data:
+            brightness_pct: 30
+    - alias: 'OFF: active hours end'
+      conditions:
+      - condition: trigger
+        id:
+        - active-off
+      sequence:
+      - action: light.turn_off
+        target:
+          entity_id:
+          - light.kitchen_kitchen_upper_cabinet_lights
+          - light.kitchen_kitchen_under_cabinet_lights
+          - light.kitchen_kitchen_pendant_lights
+  mode: single
