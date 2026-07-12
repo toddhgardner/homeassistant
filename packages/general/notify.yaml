@@ -27,12 +27,14 @@ homeassistant:
       <<: *package
     notify.p2_alert:
       <<: *package
+    notify.maintenance_notice:
+      <<: *package
 
     person.todd_gardner:
       notify: notify.todd_gardner
-    person.erin:
+    person.erin_gardner:
       notify: notify.erin_gardner
-    person.isabelle:
+    person.isabelle_gardner:
       notify: notify.izzy_gardner
     person.samantha_gardner:
       notify: notify.sam_gardner
@@ -106,7 +108,7 @@ notify:
   - name: maintenance_notice
     platform: group
     services:
-      - service: email_todd_gardner
+      - service: todd_gardner
 
 script:
 
@@ -124,15 +126,14 @@ script:
         selector:
           text:
     sequence:
-      - parallel:
-          - repeat:
-              for_each: >
-                {{ expand('group.household')
-                  | selectattr('state', 'eq', 'home')
-                  | map(attribute='entity_id')
-                  | list }}
-              sequence:
-                - action: "{{ state_attr(repeat.item, 'notify') }}"
-                  data:
-                    message: "{{ message }}"
-                    title: "{{ title }}"
+        - repeat:
+            for_each: >
+              {{ expand('group.household')
+                | selectattr('state', 'eq', 'home')
+                | map(attribute='entity_id')
+                | list }}
+            sequence:
+              - action: "{{ state_attr(repeat.item, 'notify') }}"
+                data:
+                  message: "{{ message }}"
+                  title: "{{ title }}"
