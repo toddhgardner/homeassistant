@@ -173,3 +173,147 @@
       supported_features: 32
       state: 'off'
   metadata: {}
+- id: '1783881858843'
+  name: Kitchen Lights On
+  entities:
+    light.kitchen_kitchen_under_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode: onoff
+      friendly_name: Kitchen Under Cabinet Lights
+      supported_features: 0
+      state: 'on'
+    light.kitchen_kitchen_upper_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode: onoff
+      friendly_name: Kitchen Upper Cabinet Lights
+      supported_features: 0
+      state: 'on'
+    light.pantry_pantry_upper_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode: onoff
+      friendly_name: Pantry Upper Cabinet Lights
+      supported_features: 0
+      state: 'on'
+    light.pantry_pantry_under_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode: onoff
+      friendly_name: Pantry Under Cabinet Lights
+      supported_features: 0
+      state: 'on'
+    light.pantry_pantry_overhead_lights:
+      supported_color_modes:
+      - onoff
+      color_mode: onoff
+      friendly_name: Pantry Overhead Lights
+      supported_features: 0
+      state: 'on'
+    light.kitchen_kitchen_pendant_lights:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 255
+      friendly_name: Kitchen Pendant Lights
+      supported_features: 32
+      state: 'on'
+  metadata: {}
+  icon: mdi:lightbulb-group
+- id: '1783881954159'
+  name: Kitchen Lights Idle
+  entities:
+    light.kitchen_kitchen_under_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode:
+      friendly_name: Kitchen Under Cabinet Lights
+      supported_features: 0
+      state: 'off'
+    light.kitchen_kitchen_upper_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode:
+      friendly_name: Kitchen Upper Cabinet Lights
+      supported_features: 0
+      state: 'off'
+    light.pantry_pantry_upper_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode:
+      friendly_name: Pantry Upper Cabinet Lights
+      supported_features: 0
+      state: 'off'
+    light.pantry_pantry_under_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode:
+      friendly_name: Pantry Under Cabinet Lights
+      supported_features: 0
+      state: 'off'
+    light.pantry_pantry_overhead_lights:
+      supported_color_modes:
+      - onoff
+      color_mode:
+      friendly_name: Pantry Overhead Lights
+      supported_features: 0
+      state: 'off'
+    light.kitchen_kitchen_pendant_lights:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 52
+      friendly_name: Kitchen Pendant Lights
+      supported_features: 32
+      state: 'on'
+  metadata: {}
+  icon: mdi:lightbulb-group
+- id: '1783881993501'
+  name: Kitchen Lights Off
+  entities:
+    light.kitchen_kitchen_under_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode:
+      friendly_name: Kitchen Under Cabinet Lights
+      supported_features: 0
+      state: 'off'
+    light.kitchen_kitchen_upper_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode:
+      friendly_name: Kitchen Upper Cabinet Lights
+      supported_features: 0
+      state: 'off'
+    light.pantry_pantry_upper_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode:
+      friendly_name: Pantry Upper Cabinet Lights
+      supported_features: 0
+      state: 'off'
+    light.pantry_pantry_under_cabinet_lights:
+      supported_color_modes:
+      - onoff
+      color_mode:
+      friendly_name: Pantry Under Cabinet Lights
+      supported_features: 0
+      state: 'off'
+    light.pantry_pantry_overhead_lights:
+      supported_color_modes:
+      - onoff
+      color_mode:
+      friendly_name: Pantry Overhead Lights
+      supported_features: 0
+      state: 'off'
+    light.kitchen_kitchen_pendant_lights:
+      supported_color_modes:
+      - brightness
+      color_mode:
+      brightness:
+      friendly_name: Kitchen Pendant Lights
+      supported_features: 32
+      state: 'off'
+  metadata: {}
+  icon: mdi:lightbulb-group

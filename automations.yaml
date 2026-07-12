@@ -1416,10 +1416,10 @@
   max: 4
 - id: '1783784448729'
   alias: Kitchen Light Controller
-  description: Motion and active-hours driven kitchen lighting. On with motion (6am
-    until active hours end) or at active hours start. Dims to idle after 60 min without
-    motion. All off when active hours ends. Turn-on requires household in town; turn-off
-    always runs.
+  description: Scene-based kitchen lighting. On with motion (6am to active hours end)
+    or at active hours start. Idle after 60 min without motion. Off when active hours
+    ends. Manual off suspends turn-on AND idle until active hours ends; manual on
+    re-engages. Only the nightly off always runs. Turn-on requires household in town.
   triggers:
   - trigger: state
     entity_id: binary_sensor.common_motion
@@ -1445,10 +1445,26 @@
     entity_id: schedule.active_hours
     to: 'off'
     id: active-off
+  - trigger: state
+    entity_id:
+    - switch.kitchen_kitchen_upper_cabinet_lights
+    - switch.kitchen_kitchen_under_cabinet_lights
+    - switch.pantry_pantry_overhead_lights
+    - light.kitchen_kitchen_pendant_lights
+    to: 'off'
+    id: manual-off
+  - trigger: state
+    entity_id:
+    - switch.kitchen_kitchen_upper_cabinet_lights
+    - switch.kitchen_kitchen_under_cabinet_lights
+    - switch.pantry_pantry_overhead_lights
+    - light.kitchen_kitchen_pendant_lights
+    to: 'on'
+    id: manual-on
   conditions: []
   actions:
   - choose:
-    - alias: 'ON: motion in allowed window (in town only)'
+    - alias: 'ON: motion in allowed window'
       conditions:
       - condition: trigger
         id:
@@ -1456,6 +1472,9 @@
       - condition: state
         entity_id: binary_sensor.household_in_town
         state: 'on'
+      - condition: state
+        entity_id: input_boolean.kitchen_lights_manual_override
+        state: 'off'
       - condition: or
         conditions:
         - condition: state
@@ -1464,18 +1483,23 @@
         - condition: time
           after: 06:00:00
           before: 08:00:00
+      - alias: 'Gate: skip if everything is already on'
+        condition: or
+        conditions:
+        - condition: state
+          entity_id: light.kitchen_kitchen_upper_cabinet_lights
+          state: 'off'
+        - condition: state
+          entity_id: light.kitchen_kitchen_under_cabinet_lights
+          state: 'off'
+        - condition: state
+          entity_id: light.pantry_pantry_overhead_lights
+          state: 'off'
       sequence:
-      - action: light.turn_on
+      - action: scene.turn_on
         target:
-          entity_id:
-          - light.kitchen_kitchen_upper_cabinet_lights
-          - light.kitchen_kitchen_under_cabinet_lights
-      - action: light.turn_on
-        target:
-          entity_id: light.kitchen_kitchen_pendant_lights
-        data:
-          brightness_pct: 100
-    - alias: 'ON: active hours start (in town only)'
+          entity_id: scene.kitchen_lights_on
+    - alias: 'ON: active hours start'
       conditions:
       - condition: trigger
         id:
@@ -1483,17 +1507,13 @@
       - condition: state
         entity_id: binary_sensor.household_in_town
         state: 'on'
+      - condition: state
+        entity_id: input_boolean.kitchen_lights_manual_override
+        state: 'off'
       sequence:
-      - action: light.turn_on
+      - action: scene.turn_on
         target:
-          entity_id:
-          - light.kitchen_kitchen_upper_cabinet_lights
-          - light.kitchen_kitchen_under_cabinet_lights
-      - action: light.turn_on
-        target:
-          entity_id: light.kitchen_kitchen_pendant_lights
-        data:
-          brightness_pct: 100
+          entity_id: scene.kitchen_lights_on
     - alias: 'IDLE: no motion for 60 min during active hours'
       conditions:
       - condition: trigger
@@ -1502,22 +1522,13 @@
       - condition: state
         entity_id: schedule.active_hours
         state: 'on'
+      - condition: state
+        entity_id: input_boolean.kitchen_lights_manual_override
+        state: 'off'
       sequence:
-      - action: light.turn_off
+      - action: scene.turn_on
         target:
-          entity_id:
-          - light.kitchen_kitchen_upper_cabinet_lights
-          - light.kitchen_kitchen_under_cabinet_lights
-      - if:
-        - condition: state
-          entity_id: light.kitchen_kitchen_pendant_lights
-          state: 'on'
-        then:
-        - action: light.turn_on
-          target:
-            entity_id: light.kitchen_kitchen_pendant_lights
-          data:
-            brightness_pct: 30
+          entity_id: scene.kitchen_lights_idle
     - alias: 'IDLE: active hours started 60 min ago, still nobody'
       conditions:
       - condition: trigger
@@ -1528,32 +1539,59 @@
         state: 'off'
         for:
           minutes: 60
+      - condition: state
+        entity_id: input_boolean.kitchen_lights_manual_override
+        state: 'off'
       sequence:
-      - action: light.turn_off
+      - action: scene.turn_on
         target:
-          entity_id:
-          - light.kitchen_kitchen_upper_cabinet_lights
-          - light.kitchen_kitchen_under_cabinet_lights
-      - if:
-        - condition: state
-          entity_id: light.kitchen_kitchen_pendant_lights
-          state: 'on'
-        then:
-        - action: light.turn_on
-          target:
-            entity_id: light.kitchen_kitchen_pendant_lights
-          data:
-            brightness_pct: 30
+          entity_id: scene.kitchen_lights_idle
     - alias: 'OFF: active hours end'
       conditions:
       - condition: trigger
         id:
         - active-off
       sequence:
-      - action: light.turn_off
+      - action: scene.turn_on
         target:
-          entity_id:
-          - light.kitchen_kitchen_upper_cabinet_lights
-          - light.kitchen_kitchen_under_cabinet_lights
-          - light.kitchen_kitchen_pendant_lights
+          entity_id: scene.kitchen_lights_off
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.kitchen_lights_manual_override
+    - alias: 'MANUAL OFF: suspend turn-on for the rest of the day'
+      conditions:
+      - condition: trigger
+        id:
+        - manual-off
+      - condition: template
+        value_template: '{{ trigger.to_state.context.parent_id is none }}'
+      - condition: state
+        entity_id: input_boolean.kitchen_lights_manual_override
+        state: 'off'
+      - condition: or
+        conditions:
+        - condition: state
+          entity_id: schedule.active_hours
+          state: 'on'
+        - condition: time
+          after: 06:00:00
+          before: 08:00:00
+      sequence:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.kitchen_lights_manual_override
+    - alias: 'MANUAL ON: re-engage the automation'
+      conditions:
+      - condition: trigger
+        id:
+        - manual-on
+      - condition: template
+        value_template: '{{ trigger.to_state.context.parent_id is none }}'
+      - condition: state
+        entity_id: input_boolean.kitchen_lights_manual_override
+        state: 'on'
+      sequence:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.kitchen_lights_manual_override
   mode: single

@@ -1,0 +1,45 @@
+# Zooz Device-Specific Overrides
+# System package
+#
+# Per-device settings that intentionally differ from the common config
+# (zooz_common_config.yaml). One step per override, documented with why.
+# Re-run after a device reset. Idempotent.
+#
+# Current overrides:
+#   Kitchen Pendant Lights (ZEN77, node 17):
+#     p11 max brightness = 95 — one bulb flickers at 100%
+#     p12 double tap     = 2 (to max brightness) — REQUIRED: the ZEN77
+#       ignores p11 entirely while p12 is 0 (its default), and double-tap
+#       would still hit the flickering 100%.
+---
+
+script:
+  apply_zooz_device_overrides:
+    alias: Apply Zooz Device Overrides
+    description: >-
+      Re-applies per-device Zooz settings that differ from the common
+      config. See package comments for the reason behind each override.
+    mode: single
+    sequence:
+      - alias: "Kitchen Pendant p11: max brightness 95 (flickering bulb at 100%)"
+        action: zwave_js.set_config_parameter
+        data:
+          entity_id: light.kitchen_kitchen_pendant_lights
+          parameter: 11
+          value: 95
+        continue_on_error: true
+
+      - alias: "Kitchen Pendant p12: double tap to max (activates p11)"
+        action: zwave_js.set_config_parameter
+        data:
+          entity_id: light.kitchen_kitchen_pendant_lights
+          parameter: 12
+          value: 2
+        continue_on_error: true
+
+      - alias: Log to system event log
+        action: logbook.log
+        data:
+          name: System
+          message: applied zooz device-specific overrides
+          entity_id: input_boolean.log_event

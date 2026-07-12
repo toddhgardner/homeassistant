@@ -22,6 +22,14 @@
 #   p15 LED brightness   = 2      p24 LED brightness   = 2 (low 30%)
 #   p17 paddle progrmng  = 1      p26 paddle progrmng  = 1 (disabled)
 #
+# Dimmer ramp/dimming (ZEN72/ZEN77 only):
+#   p9  physical ramp ON     = 1s
+#   p27 physical ramp OFF    = 1s
+#   p28 z-wave ramp ON       = 255 (match p9; factory default, kept explicit)
+#   p29 z-wave ramp OFF      = 255 (match p27; factory default, kept explicit)
+#   p16 hold-to-dim sweep    = 3s
+#   p30 associated dim sweep = 3s
+#
 # Idempotent, safe to re-run. continue_on_error keeps one offline node
 # from blocking the rest.
 ---
@@ -109,6 +117,54 @@ script:
           device_id: "{{ zooz_dimmers }}"
           parameter: 26
           value: 1
+        continue_on_error: true
+
+      - alias: "dimmers p9: physical ramp on 1s"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_dimmers }}"
+          parameter: 9
+          value: 1
+        continue_on_error: true
+
+      - alias: "dimmers p27: physical ramp off 1s"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_dimmers }}"
+          parameter: 27
+          value: 1
+        continue_on_error: true
+
+      - alias: "dimmers p28: z-wave ramp on matches physical"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_dimmers }}"
+          parameter: 28
+          value: 255
+        continue_on_error: true
+
+      - alias: "dimmers p29: z-wave ramp off matches physical"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_dimmers }}"
+          parameter: 29
+          value: 255
+        continue_on_error: true
+
+      - alias: "dimmers p16: hold-to-dim sweep 3s"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_dimmers }}"
+          parameter: 16
+          value: 3
+        continue_on_error: true
+
+      - alias: "dimmers p30: associated device dim sweep 3s"
+        action: zwave_js.set_config_parameter
+        data:
+          device_id: "{{ zooz_dimmers }}"
+          parameter: 30
+          value: 3
         continue_on_error: true
 
       - alias: Log to system event log
