@@ -47,7 +47,7 @@ template:
             {% else %}
               {% set entity_first = active_entities | first %}
               {% if entity_count == 1 %}
-                {{ state_attr(entity_first, 'friendly_name') }} is {{ states(entity_first, rounded=True, with_unit=True) }}.
+                {{ state_attr(entity_first, 'friendly_name') }} is wet.
               {% else %}
                 {{ state_attr(entity_first, 'friendly_name') }} and {{ entity_count - 1 }} others are wet.
               {% endif %}

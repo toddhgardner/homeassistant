@@ -1,0 +1,87 @@
+# Main Water Temperature Alert
+# Alerts
+#
+# P1 on the ZAC36's own temperature alarms at the water main: underheat
+# (freeze risk at the pipe — fires only after the house climate alerts have
+# already failed or been missed) and overheat (water heater fault or worse).
+# Thresholds live on the device (factory defaults: freeze < 32°F recover
+# 36°F, overheat > 104°F recover 86°F) and require the p81 freeze/overheat
+# notification reports to be enabled.
+---
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: alerts/main_water_temperature_alert
+
+    alert.p1_main_water_temperature:
+      <<: *package
+    binary_sensor.p1_main_water_temperature_trigger:
+      <<: *package
+
+template:
+  - binary_sensor:
+      - name: P1 Main Water Temperature Trigger
+        unique_id: p1_main_water_temperature_trigger
+        variables:
+          underheat: binary_sensor.main_water_valve_actuator_underheat_detected
+          overheat: binary_sensor.main_water_valve_actuator_overheat_detected
+          temperature: sensor.main_water_valve_actuator_air_temperature
+        state: >
+          {{ is_state(underheat, 'on') or is_state(overheat, 'on') }}
+        delay_on:
+          seconds: 10
+        availability: >
+          {{ not is_state(underheat, ['unknown', 'unavailable', 'none']) and
+             not is_state(overheat, ['unknown', 'unavailable', 'none']) }}
+        attributes:
+          device_class: problem
+          monitored_entities: >
+            {{ [underheat, overheat] }}
+          active_entities: >
+            {{ [underheat, overheat]
+              | select('is_state', 'on')
+              | list }}
+          title: >
+            {% if is_state(underheat, 'on') %}
+              ❄️ Water Main Freeze Risk
+            {% else %}
+              🌡️ Water Main Overheat
+            {% endif %}
+          message: >
+            {% if is_state(underheat, 'on') %}
+              Water main is at {{ states(temperature, rounded=True, with_unit=True) }}. Pipes are at risk of freezing.
+            {% elif is_state(overheat, 'on') %}
+              Water main is at {{ states(temperature, rounded=True, with_unit=True) }}. Check the utility room.
+            {% else %}
+              Water main temperature normal.
+            {% endif %}
+          source_entity_id: >
+            {{ this.entity_id }}
+
+alert:
+  p1_main_water_temperature:
+    name: Main Water Temperature
+    entity_id: binary_sensor.p1_main_water_temperature_trigger
+    state: 'on'
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p1_alert
+    repeat: 30
+    title: >
+      {{ state_attr('binary_sensor.p1_main_water_temperature_trigger', 'title') }}
+    message: >
+      {{ state_attr('binary_sensor.p1_main_water_temperature_trigger', 'message') }}
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p1_main_water_temperature_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p1_main_water_temperature
+      group: ha
+      url: /dashboard-lavender/alerts
+      push:
+        interruption-level: critical
+      actions:
+        - action: alert.p1_main_water_temperature.mute
+          title: Mute
+          icon: sfsymbols:bell.slash

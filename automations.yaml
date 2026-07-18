@@ -343,7 +343,7 @@
       - action: light.turn_off
         target:
           entity_id: light.front_yard_lights
-  mode: single
+  mode: restart
 - id: '1764802704899'
   alias: Package Delivery
   description: ''
@@ -593,45 +593,67 @@
   mode: single
 - id: '1766516688126'
   alias: Low Battery Check
-  description: Check Production devices daily for batteries and add any that have
-    less than 20% remaining to the maintenance list.
+  description: Check Production devices daily at 6am for batteries and add any that
+    have less than 20% remaining to the maintenance list. Completes open battery items
+    once the battery recovers above 40%. Skips entirely when household is out of town.
+    Runs before the 8am maintenance email so new items make that day's digest.
   triggers:
   - trigger: time
-    at: 07:00:00
-  conditions: []
+    at: 06:00:00
+  conditions:
+  - condition: state
+    entity_id: binary_sensor.household_in_town
+    state: 'on'
+    alias: Household in town
   actions:
   - action: todo.get_items
-    metadata: {}
     target:
       entity_id: todo.maintenance
     data:
       status: needs_action
     response_variable: uncompleted_maintenance_items
   - variables:
-      low_batteries: "{% set label = 'Production' %}  {% set battery_limit = 20.0
-        %}  {% set exclude_devices = [\n  '29b1ea7766607bc3fc5b456f2efafd41',\n  'a60b69543ac7f2c0a43f17ddd44078e8',\n
-        \ '58aadd7003405e4c76e166880c01ee1c',\n  'd1725662ae90ea69a5197b4321da26f4'\n]
-        %} {% set existing_texts = uncompleted_maintenance_items['todo.maintenance']['items']
-        | map(attribute='summary') | list %} {% set ns = namespace(devices=[]) %}
-        {% set devices = label_devices(label) \n  | reject('in', exclude_devices)
-        \n  | list %}\n{% for device_id in devices %}\n  {% set device_battery = states.sensor\n
-        \   | selectattr('entity_id', 'in', device_entities(device_id))\n    | rejectattr('state',
-        'in', ['unknown', 'unavailable', 'none']) \n    | selectattr('attributes.device_class',
-        'eq', 'battery')\n    | list | first | default(false) %}\n  {% if (device_battery)
+      existing_texts: '{{ uncompleted_maintenance_items[''todo.maintenance''][''items'']
+        | map(attribute=''summary'') | list }}'
+      low_batteries: "{% set ns = namespace(devices=[]) %}\n{% for device_id in label_devices(battery_label)
+        | reject('in', label_devices(exempt_label)) | list %}\n  {% set device_battery
+        = states.sensor\n    | selectattr('entity_id', 'in', device_entities(device_id))\n
+        \   | rejectattr('state', 'in', ['unknown', 'unavailable', 'none'])\n    |
+        selectattr('attributes.device_class', 'eq', 'battery')\n    | list | first
+        | default(false) %}\n  {% if device_battery %}\n    {% set battery_level =
+        device_battery.state | float(-1) %}\n    {% if battery_level <= battery_limit
+        %}\n      {% set device_name = device_name(device_id) %}\n      {% set item_text
+        = 'Change battery in ' ~ device_name %}\n      {% set ns.devices = ns.devices
+        + [{\n        'device_id': device_id,\n        'device_name': device_name,\n
+        \       'entity_id': device_battery.entity_id,\n        'battery_level': battery_level,\n
+        \       'text': item_text,\n        'is_active': item_text in existing_texts\n
+        \     }] %}\n    {% endif %}\n  {% endif %}\n{% endfor %}\n{{ ns.devices }}\n"
+      resolved_batteries: "{% set ns = namespace(items=[]) %}\n{% for device_id in
+        label_devices(battery_label) | reject('in', label_devices(exempt_label)) |
+        list %}\n  {% set device_battery = states.sensor\n    | selectattr('entity_id',
+        'in', device_entities(device_id))\n    | rejectattr('state', 'in', ['unknown',
+        'unavailable', 'none'])\n    | selectattr('attributes.device_class', 'eq',
+        'battery')\n    | list | first | default(false) %}\n  {% if device_battery
         %}\n    {% set battery_level = device_battery.state | float(-1) %}\n    {%
-        if battery_level <= battery_limit | float(-1) %}\n      {% set device_name
-        = device_name(device_id) %}\n      {% set item_text = 'Change battery in '
-        ~ device_name %}\n      {% set ns.devices = ns.devices + [{\n        'device_id':
-        device_id,\n        'device_name': device_name,\n        'entity_id': device_battery.entity_id,\n
-        \       'battery_level': battery_level,\n        'text': item_text,\n        'is_active':
-        item_text in existing_texts\n      }] %}\n    {% endif %}\n  {% endif %}\n{%
-        endfor %} {{ ns.devices }}\n"
+        set item_text = 'Change battery in ' ~ device_name(device_id) %}\n    {% if
+        battery_level >= clear_limit and item_text in existing_texts %}\n      {%
+        set ns.items = ns.items + [{'text': item_text, 'battery_level': battery_level}]
+        %}\n    {% endif %}\n  {% endif %}\n{% endfor %}\n{{ ns.items }}\n"
+  - repeat:
+      for_each: '{{ resolved_batteries }}'
+      sequence:
+      - action: todo.update_item
+        target:
+          entity_id: todo.maintenance
+        data:
+          item: '{{ repeat.item.text }}'
+          status: completed
+        note: Battery recovered above clear_limit, close out the todo item.
   - repeat:
       for_each: '{{ low_batteries | selectattr(''is_active'', ''eq'', false) | list
         }}'
       sequence:
       - action: todo.add_item
-        metadata: {}
         target:
           entity_id: todo.maintenance
         data:
@@ -645,7 +667,6 @@
       alias: If any low batteries found
     then:
     - action: notify.maintenance_notice
-      metadata: {}
       data:
         title: "\U0001FAAB {{ low_batteries | length }} devices have low battery"
         message: 'The following Production devices have low batteries:
@@ -654,6 +675,11 @@
           }}%
 
           {% endfor %}'
+  variables:
+    battery_label: Production
+    exempt_label: Battery Exempt
+    battery_limit: 20
+    clear_limit: 40
   mode: single
 - id: '1766853586763'
   alias: Notify when location permission removed
@@ -678,7 +704,11 @@
   mode: single
 - id: '1766864785043'
   alias: Leak Controller
-  description: ''
+  description: Closes the water main when any leak sensor stays wet for 5 minutes
+    (the P1 leak alert fires at 10 seconds, so this is the shutoff of last resort,
+    not the warning). Verifies the valve confirms closed within 90 seconds and sends
+    a P1 if it does not. Also sends a P1 whenever the valve closes for any reason,
+    or reports jammed — including failed auto tests.
   triggers:
   - trigger: state
     entity_id:
@@ -692,13 +722,13 @@
     id: wet
   - trigger: state
     entity_id:
-    - valve.titan_water_valve_actuator
+    - valve.main_water_valve_actuator
     to:
     - closed
     id: closed
   - trigger: state
     entity_id:
-    - binary_sensor.titan_water_valve_actuator_valve_jammed
+    - binary_sensor.main_water_valve_actuator_valve_jammed
     to:
     - 'on'
     id: jammed
@@ -713,8 +743,31 @@
       - action: valve.close_valve
         metadata: {}
         target:
-          entity_id: valve.titan_water_valve_actuator
+          entity_id: valve.main_water_valve_actuator
         data: {}
+        continue_on_error: true
+      - wait_for_trigger:
+        - trigger: state
+          entity_id:
+          - valve.main_water_valve_actuator
+          to:
+          - closed
+        timeout:
+          seconds: 90
+        continue_on_timeout: true
+      - if:
+        - condition: not
+          conditions:
+          - condition: state
+            entity_id: valve.main_water_valve_actuator
+            state: closed
+        then:
+        - action: notify.p1_alert
+          metadata: {}
+          data:
+            title: "\U0001F6BF Water Main Failed to Close"
+            message: Attempted to close the water main after a leak, but it did not
+              confirm closed. Check the valve.
     - conditions:
       - condition: trigger
         id:
@@ -1419,7 +1472,8 @@
   description: Scene-based kitchen lighting. On with motion (6am to active hours end)
     or at active hours start. Idle after 60 min without motion. Off when active hours
     ends. Manual off suspends turn-on AND idle until active hours ends; manual on
-    re-engages. Only the nightly off always runs. Turn-on requires household in town.
+    re-engages. Entire automation requires household in town; the switches' own 24h
+    auto-off failsafe covers lights left on when leaving.
   triggers:
   - trigger: state
     entity_id: binary_sensor.common_motion
@@ -1461,7 +1515,10 @@
     - light.kitchen_kitchen_pendant_lights
     to: 'on'
     id: manual-on
-  conditions: []
+  conditions:
+  - condition: state
+    entity_id: binary_sensor.household_in_town
+    state: 'on'
   actions:
   - choose:
     - alias: 'ON: motion in allowed window'
@@ -1469,9 +1526,6 @@
       - condition: trigger
         id:
         - motion-on
-      - condition: state
-        entity_id: binary_sensor.household_in_town
-        state: 'on'
       - condition: state
         entity_id: input_boolean.kitchen_lights_manual_override
         state: 'off'
@@ -1504,9 +1558,6 @@
       - condition: trigger
         id:
         - active-on
-      - condition: state
-        entity_id: binary_sensor.household_in_town
-        state: 'on'
       - condition: state
         entity_id: input_boolean.kitchen_lights_manual_override
         state: 'off'
@@ -1594,4 +1645,34 @@
       - action: input_boolean.turn_off
         target:
           entity_id: input_boolean.kitchen_lights_manual_override
+  mode: queued
+  max: 5
+- id: '1784386568218'
+  alias: Z-Wave Heartbeat
+  description: 'Hourly ping of mains-powered z-wave devices with the Production label.
+    Z-wave has no passive offline detection: a node is only marked dead when a command
+    to it fails, so an untouched device can stay "alive" indefinitely. Failed pings
+    mark the node dead within the hour, which trips the device offline alert. Successful
+    pings revive recovered nodes. Sleeping (battery) nodes are excluded — pings would
+    queue until wake and drain the battery for no signal.'
+  triggers:
+  - trigger: time_pattern
+    minutes: '7'
+  conditions: []
+  actions:
+  - variables:
+      ping_buttons: "{% set ns = namespace(buttons=[]) %} {% for d in label_devices('Production')
+        %}\n  {% set ents = device_entities(d) %}\n  {% set node_status = ents\n      |
+        select('search', '_node_status$')\n      | list | first | default(none) %}\n
+        \ {% set ping = ents\n      | select('search', '^button\\..*_ping$')\n      |
+        list | first | default(none) %}\n  {% if node_status and ping and states(node_status)
+        != 'asleep' %}\n    {% set ns.buttons = ns.buttons + [ping] %}\n  {% endif
+        %}\n{% endfor %} {{ ns.buttons }}"
+  - repeat:
+      for_each: '{{ ping_buttons }}'
+      sequence:
+      - action: button.press
+        target:
+          entity_id: '{{ repeat.item }}'
+        continue_on_error: true
   mode: single

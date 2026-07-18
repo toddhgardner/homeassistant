@@ -47,7 +47,13 @@ template:
               {% set entity_offline_count = device_entities
                 | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
                 | list | count %}
-              {% if (entity_offline_count == entity_count) %}
+              {# Dead z-wave nodes keep stale entity states (zwave_js availability
+                 ignores node status), so also check the node status sensor. #}
+              {% set node_dead = device_entities
+                | selectattr('entity_id', 'search', '_node_status$')
+                | selectattr('state', 'eq', 'dead')
+                | list | count > 0 %}
+              {% if (entity_offline_count == entity_count) or node_dead %}
                 {% set ns.active_devices = ns.active_devices + [device_id] %}
               {% endif %}
             {% endfor %}
@@ -79,9 +85,8 @@ alert:
     state: 'on'
     can_acknowledge: true
     skip_first: false
-    notifiers: p2_alert
+    notifiers: persistent_notification
     repeat:
-      - 60
       - 1440
     title: >
       {{ state_attr('binary_sensor.p2_device_offline_trigger', 'title') }}
