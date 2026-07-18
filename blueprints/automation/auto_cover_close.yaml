@@ -1,7 +1,9 @@
 # Auto Cover Close
 # Blueprint
 #
-# Closes a cover (garage door) automatically after it's been open for X minutes
+# Closes a cover (garage door) automatically after it's been open for X minutes.
+# If the obstruction sensor is tripped when the timer expires, the run holds
+# until it clears, then re-checks the door before closing.
 ---
 
 blueprint:
@@ -45,27 +47,23 @@ blueprint:
           unit_of_measurement: minutes
           mode: box
 
+# restart: closing the door manually cancels the trigger timer; reopening
+# starts a fresh countdown and replaces any run still waiting on an
+# obstruction.
 mode: restart
+
+variables:
+  obstruction: !input target_obstruction
 
 triggers:
 
-  - platform: state
+  # The cover itself is the only countdown. The timer starts when the cover
+  # reaches "open" and is cancelled automatically if it leaves "open".
+  - trigger: state
     entity_id: !input target
     to: "open"
     for:
       minutes: !input close_delay
-
-  - platform: state
-    entity_id: !input target_obstruction
-    to: "off"
-    for:
-      minutes: !input close_delay
-
-  # Obstruction detected, restart the automation, but it wont finish unless the
-  # obstruction clears.
-  - platform: state
-    entity_id: !input target_obstruction
-    to: "on"
 
 conditions:
 
@@ -73,11 +71,19 @@ conditions:
     entity_id: !input target_lock
     state: "unlocked"
 
-  - condition: state
-    entity_id: !input target_obstruction
-    state: "off"
-
 actions:
+
+  # If something is blocking the door, hold here until it clears.
+  - wait_template: "{{ is_state(obstruction, 'off') }}"
+
+  # The door may have been closed or locked while we waited.
+  - condition: state
+    entity_id: !input target
+    state: "open"
+
+  - condition: state
+    entity_id: !input target_lock
+    state: "unlocked"
 
   - action: cover.close_cover
     target:
