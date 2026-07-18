@@ -1,0 +1,86 @@
+# Main Water Valve Alert
+# Alerts
+#
+# P1 for water main fault states: jammed, or failing to close during an
+# active leak. Valve simply being closed is NOT an alert — the dashboard
+# badge surfaces that, and the system event log records automated closes.
+#
+# The "failed to close" branch is stateful on purpose: leak group wet for
+# over 7 minutes (Leak Controller closes at 5) with the valve not confirming
+# closed. It keeps firing while the danger exists, and covers a dead node,
+# a mid-travel stall, or anything else a one-shot verify would miss.
+---
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: alerts/p1_main_water_valve_alert
+
+    alert.p1_main_water_valve:
+      <<: *package
+    binary_sensor.p1_main_water_valve_trigger:
+      <<: *package
+
+template:
+  - binary_sensor:
+      - name: P1 Main Water Valve Trigger
+        unique_id: p1_main_water_valve_trigger
+        variables:
+          valve: valve.main_water_valve_actuator
+          jammed: binary_sensor.main_water_valve_actuator_valve_jammed
+          leak: binary_sensor.leak_sensors
+        state: >
+          {{ is_state(jammed, 'on')
+             or (is_state(leak, 'on')
+                 and (now() - states[leak].last_changed).total_seconds() > 420
+                 and not is_state(valve, 'closed')) }}
+        delay_on:
+          seconds: 10
+        availability: >
+          {{ not is_state(jammed, ['unknown', 'unavailable', 'none']) and
+             not is_state(valve, ['unknown', 'unavailable', 'none']) }}
+        attributes:
+          device_class: problem
+          monitored_entities: >
+            {{ [valve, jammed, leak] }}
+          title: >
+            {% if is_state(jammed, 'on') %}
+              🚿 Water Main Jammed
+            {% else %}
+              🚿 Water Main Failed to Close
+            {% endif %}
+          message: >
+            {% if is_state(jammed, 'on') %}
+              The water main reports jammed. Close it manually if there is a leak.
+            {% else %}
+              A leak is active but the water main has not confirmed closed. Close it manually.
+            {% endif %}
+          source_entity_id: >
+            {{ valve }}
+
+alert:
+  p1_main_water_valve:
+    name: Main Water Valve
+    entity_id: binary_sensor.p1_main_water_valve_trigger
+    state: 'on'
+    can_acknowledge: true
+    skip_first: false
+    notifiers: p1_alert
+    repeat: 30
+    title: >
+      {{ state_attr('binary_sensor.p1_main_water_valve_trigger', 'title') }}
+    message: >
+      {{ state_attr('binary_sensor.p1_main_water_valve_trigger', 'message') }}
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p1_main_water_valve_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p1_main_water_valve
+      group: ha
+      url: /dashboard-lavender/alerts
+      push:
+        interruption-level: critical
+      actions:
+        - action: alert.p1_main_water_valve.mute
+          title: Mute
+          icon: sfsymbols:bell.slash

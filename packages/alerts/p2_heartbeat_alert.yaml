@@ -6,7 +6,7 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: general/heartbeat
+        package: alerts/p2_heartbeat_alert
 
     alert.p2_heartbeat:
       <<: *package
@@ -90,7 +90,7 @@ alert:
     state: "on"
     can_acknowledge: true
     skip_first: false
-    notifiers: p2_alert
+    notifiers: persistent_notification
     repeat:
       - 60
       - 1440

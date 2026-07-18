@@ -13,7 +13,7 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: alerts/main_water_temperature_alert
+        package: alerts/p1_main_water_temperature_alert
 
     alert.p1_main_water_temperature:
       <<: *package

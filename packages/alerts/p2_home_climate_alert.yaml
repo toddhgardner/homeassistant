@@ -7,7 +7,7 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: alerts/home_climate
+        package: alerts/p2_home_climate_alert
 
     alert.p2_home_climate:
       <<: *package
@@ -81,10 +81,9 @@ alert:
     state: 'on'
     can_acknowledge: true
     skip_first: false
+    notifiers: persistent_notification
     repeat:
-      - 60
       - 1440
-    notifiers: p2_alert
     title: >
       {{ state_attr('binary_sensor.p2_home_climate_trigger', 'title') }}
     message: >

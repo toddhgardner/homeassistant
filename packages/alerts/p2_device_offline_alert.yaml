@@ -7,7 +7,7 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: alerts/device_offline_alert
+        package: alerts/p2_device_offline_alert
 
     alert.p2_device_offline:
       <<: *package

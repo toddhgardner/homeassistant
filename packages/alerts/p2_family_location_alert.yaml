@@ -7,7 +7,7 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: alerts/family_location_alert
+        package: alerts/p2_family_location_alert
 
     alert.p2_family_location:
       <<: *package
@@ -74,7 +74,7 @@ alert:
     state: 'on'
     can_acknowledge: true
     skip_first: false
-    notifiers: p2_alert
+    notifiers: persistent_notification
     repeat:
       - 60
       - 1440

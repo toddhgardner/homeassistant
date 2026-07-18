@@ -7,7 +7,7 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: alerts/smoke_alert
+        package: alerts/p1_smoke_alert
 
     alert.p1_smoke:
       <<: *package

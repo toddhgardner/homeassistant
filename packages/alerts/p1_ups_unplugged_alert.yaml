@@ -7,7 +7,7 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: alerts/ups_unplugged
+        package: alerts/p1_ups_unplugged_alert
 
     alert.p1_ups_unplugged:
       <<: *package

@@ -1,5 +1,5 @@
-# Alerting
-# System
+# Alerting Core
+# Alerts
 #
 # Core alerting and notification functionality.
 ---
@@ -14,6 +14,8 @@ homeassistant:
       <<: *package
     automation.alert_daily_unmute:
       <<: *package
+    automation.alert_dispatcher:
+      <<: *package
     sensor.p1_alert_count:
       <<: *package
     sensor.p2_alert_count:
@@ -26,7 +28,7 @@ template:
         icon: mdi:alert-box
         state: >
           {{ states.alert
-            | selectattr('object_id', 'match', '^p1_*')
+            | selectattr('object_id', 'match', '^p1_')
             | selectattr('state', 'ne', 'idle')
             | list
             | count }}
@@ -35,7 +37,7 @@ template:
         icon: mdi:alert
         state: >
           {{ states.alert
-            | selectattr('object_id', 'match', '^p2_*')
+            | selectattr('object_id', 'match', '^p2_')
             | selectattr('state', 'ne', 'idle')
             | list
             | count }}
@@ -84,15 +86,172 @@ automation:
                 target:
                   entity_id: "{{ action_entity_id }}"
 
+  # Alert Dispatcher
+  # Single automation that handles all push notification delivery for P1 and P2 alerts.
+  #
+  # P1 alerts (notifiers: p1_alert):
+  #   - Alert entity handles notify.P1_alert directly (with repeat every 30 min).
+  #   - Dispatcher sends to household members at home on trigger and recovery.
+  #   - No time gate — P1 fires any time.
+  #
+  # P2 alerts (notifiers: persistent_notification):
+  #   - Dispatcher is the sole push source for P2s.
+  #   - Gated to active hours only — overnight P2s surface via morning digest.
+  #   - Sends to notify.p2_alert + household members at home.
+  #
+  # Only fires on idle→on (new trigger) or on→idle (recovery).
+  # The off→on transition from daily unmute is intentionally excluded.
+  # Todd is excluded from the household loop — P1 alert entity covers him,
+  # and P2 notify.p2_alert covers him.
+  - id: alert_dispatcher
+    alias: Alert Dispatcher
+    description: >
+      Delivers push notifications for all P1 and P2 alerts.
+    mode: parallel
+    max: 10
+    triggers:
+      - trigger: event
+        event_type: state_changed
+    conditions:
+      - condition: template
+        value_template: >
+          {{ (trigger.event.data.entity_id.startswith('alert.p1_') or
+              trigger.event.data.entity_id.startswith('alert.p2_'))
+             and trigger.event.data.new_state is not none
+             and trigger.event.data.old_state is not none
+             and (
+               (trigger.event.data.old_state.state == 'idle' and trigger.event.data.new_state.state == 'on')
+               or
+               (trigger.event.data.old_state.state == 'on' and trigger.event.data.new_state.state == 'idle')
+             )
+             and (
+               trigger.event.data.entity_id.startswith('alert.p1_')
+               or is_state('schedule.active_hours', 'on')
+             ) }}
+    actions:
+      - variables:
+          alert_entity_id: "{{ trigger.event.data.entity_id }}"
+          is_p1: "{{ alert_entity_id.startswith('alert.p1_') }}"
+          new_state: "{{ trigger.event.data.new_state.state }}"
+          trigger_entity_id: >
+            {{ alert_entity_id | replace('alert.', 'binary_sensor.') + '_trigger' }}
+          title: >
+            {{ state_attr(trigger_entity_id, 'title')
+               | default(state_attr(alert_entity_id, 'friendly_name'), true) }}
+          message: >
+            {{ state_attr(trigger_entity_id, 'message') | default('') }}
+          others_at_home: >
+            {{ expand('group.household')
+              | selectattr('state', 'eq', 'home')
+              | rejectattr('entity_id', 'eq', 'person.todd_gardner')
+              | map(attribute='entity_id')
+              | list }}
+      - choose:
+          # P1 new alert — household at home only (alert entity handles Todd)
+          - conditions:
+              - condition: template
+                value_template: "{{ is_p1 and new_state == 'on' }}"
+            sequence:
+              - repeat:
+                  for_each: "{{ others_at_home }}"
+                  sequence:
+                    - action: "{{ state_attr(repeat.item, 'notify') }}"
+                      data:
+                        title: "{{ title }}"
+                        message: "{{ message }}"
+                        data:
+                          tag: "{{ alert_entity_id }}"
+                          group: ha
+                          url: /dashboard-lavender/alerts
+                          push:
+                            interruption-level: critical
+
+          # P1 recovery — household at home only (alert entity done_message handles Todd)
+          - conditions:
+              - condition: template
+                value_template: "{{ is_p1 and new_state == 'idle' }}"
+            sequence:
+              - repeat:
+                  for_each: "{{ others_at_home }}"
+                  sequence:
+                    - action: "{{ state_attr(repeat.item, 'notify') }}"
+                      data:
+                        title: "{{ title }} — Recovered"
+                        message: >
+                          Resolved at {{ now().strftime('%a %b %-d, %-I:%M %p') }}
+                        data:
+                          tag: "{{ alert_entity_id }}"
+                          group: ha
+                          url: /dashboard-lavender/alerts
+
+          # P2 new alert — Todd + household at home
+          - conditions:
+              - condition: template
+                value_template: "{{ not is_p1 and new_state == 'on' }}"
+            sequence:
+              - action: notify.p2_alert
+                data:
+                  title: "{{ title }}"
+                  message: "{{ message }}"
+                  data:
+                    tag: "{{ alert_entity_id }}"
+                    group: ha
+                    url: /dashboard-lavender/alerts
+                    actions:
+                      - action: "{{ alert_entity_id }}.mute"
+                        title: Mute
+                        icon: sfsymbols:bell.slash
+              - repeat:
+                  for_each: "{{ others_at_home }}"
+                  sequence:
+                    - action: "{{ state_attr(repeat.item, 'notify') }}"
+                      data:
+                        title: "{{ title }}"
+                        message: "{{ message }}"
+                        data:
+                          tag: "{{ alert_entity_id }}"
+                          group: ha
+                          url: /dashboard-lavender/alerts
+
+          # P2 recovery — Todd + household at home
+          - conditions:
+              - condition: template
+                value_template: "{{ not is_p1 and new_state == 'idle' }}"
+            sequence:
+              - action: notify.p2_alert
+                data:
+                  title: "{{ title }} — Recovered"
+                  message: >
+                    Resolved at {{ now().strftime('%a %b %-d, %-I:%M %p') }}
+                  data:
+                    tag: "{{ alert_entity_id }}"
+                    group: ha
+                    url: /dashboard-lavender/alerts
+              - repeat:
+                  for_each: "{{ others_at_home }}"
+                  sequence:
+                    - action: "{{ state_attr(repeat.item, 'notify') }}"
+                      data:
+                        title: "{{ title }} — Recovered"
+                        message: >
+                          Resolved at {{ now().strftime('%a %b %-d, %-I:%M %p') }}
+                        data:
+                          tag: "{{ alert_entity_id }}"
+                          group: ha
+                          url: /dashboard-lavender/alerts
+
   # Daily Re-enable Muted Alerts
-  # Runs at 9am to turn on any alerts that are off
+  # Unmutes any muted alerts, then sends a push digest of any P2 alerts
+  # that are still active (including those just unmuted).
   - id: alert_daily_unmute
     alias: Daily Re-enable Muted Alerts
     description: >
-      Re-enables any muted alerts daily at 9am to prevent forgetting about them.
+      Re-enables any muted alerts daily at 8am to prevent forgetting about them.
+      Also sends a morning push digest of any active P2 alerts so overnight
+      triggers are not silently missed.
     triggers:
       - trigger: time
-        at: "09:00:00"
+        at: "08:00:00"
     actions:
       - action: alert.turn_on
         target:
@@ -101,3 +260,38 @@ automation:
               | selectattr('state', 'eq', 'off')
               | map(attribute='entity_id')
               | list }}
+      - variables:
+          active_p2s: >
+            {{ states.alert
+              | selectattr('object_id', 'match', '^p2_')
+              | selectattr('state', 'ne', 'idle')
+              | list }}
+          others_at_home: >
+            {{ expand('group.household')
+              | selectattr('state', 'eq', 'home')
+              | rejectattr('entity_id', 'eq', 'person.todd_gardner')
+              | map(attribute='entity_id')
+              | list }}
+      - if:
+          - condition: template
+            value_template: "{{ active_p2s | count > 0 }}"
+        then:
+          - action: notify.p2_alert
+            data:
+              title: "⚠️ Active P2 Alerts"
+              message: >
+                {{ active_p2s | map(attribute='name') | join(', ') }}
+              data:
+                group: ha
+                url: /dashboard-lavender/alerts
+          - repeat:
+              for_each: "{{ others_at_home }}"
+              sequence:
+                - action: "{{ state_attr(repeat.item, 'notify') }}"
+                  data:
+                    title: "⚠️ Active P2 Alerts"
+                    message: >
+                      {{ active_p2s | map(attribute='name') | join(', ') }}
+                    data:
+                      group: ha
+                      url: /dashboard-lavender/alerts

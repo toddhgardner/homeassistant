@@ -35,3 +35,5 @@ tts
 # CLAUDE
 CLAUDE.md
 .claude
+.ha_mcp/feature_flags.json
+.ha_mcp/logs/mcp_usage.jsonl

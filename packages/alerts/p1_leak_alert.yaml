@@ -1,4 +1,4 @@
-# CO Alert
+# Leak Alert
 # Alerts
 #
 ---
@@ -7,21 +7,23 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: alerts/co_alert
+        package: alerts/p1_leak_alert
 
-    alert.p1_co:
+    alert.p1_leak:
       <<: *package
-    binary_sensor.p1_co_trigger:
+    binary_sensor.p1_leak_trigger:
       <<: *package
 
 template:
   - binary_sensor:
-      - name: P1 CO Trigger
-        unique_id: p1_co_trigger
+      - name: P1 Leak Trigger
+        unique_id: p1_leak_trigger
         variables:
-          group_entity_id: binary_sensor.co_detectors
+          group_entity_id: binary_sensor.leak_sensors
         state: >
           {{ is_state(group_entity_id, 'on') }}
+        delay_on:
+          seconds: 10
         availability: >
           {{ states(group_entity_id) is defined and
             not is_state(group_entity_id, ['unknown', 'unavailable', 'none']) }}
@@ -36,41 +38,45 @@ template:
               | selectattr('state', 'eq', 'on')
               | map(attribute='entity_id')
               | list }}
-          title: ☠️ Carbon Monoxide Detected
+          title: 💧 Leak Detected
           message: >
             {% set active_entities = this.attributes.get('active_entities', []) %}
             {% set entity_count = active_entities | count %}
             {% if entity_count == 0 %}
-              All sensors clear.
+              All sensors dry.
             {% else %}
               {% set entity_first = active_entities | first %}
-              {{ state_attr(entity_first, 'friendly_name') }} detected Carbon Monoxide.
+              {% if entity_count == 1 %}
+                {{ state_attr(entity_first, 'friendly_name') }} is wet.
+              {% else %}
+                {{ state_attr(entity_first, 'friendly_name') }} and {{ entity_count - 1 }} others are wet.
+              {% endif %}
             {% endif %}
           source_entity_id: >
             {{ group_entity_id }}
 
 alert:
-  p1_co:
-    name: Cabon Monoxide
-    entity_id: binary_sensor.p1_co_trigger
+  p1_leak:
+    name: Leak
+    entity_id: binary_sensor.p1_leak_trigger
     state: 'on'
     can_acknowledge: true
     skip_first: false
     notifiers: p1_alert
     repeat: 30
     title: >
-      {{ state_attr('binary_sensor.p1_co_trigger', 'title') }}
+      {{ state_attr('binary_sensor.p1_leak_trigger', 'title') }}
     message: >
-      {{ state_attr('binary_sensor.p1_co_trigger', 'message') }}
+      {{ state_attr('binary_sensor.p1_leak_trigger', 'message') }}
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p1_co_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p1_leak_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
-      tag: p1_co
+      tag: p1_leak
       group: ha
       url: /dashboard-lavender/alerts
       push:
         interruption-level: critical
       actions:
-        - action: alert.p1_co.mute
+        - action: alert.p1_leak.mute
           title: Mute
           icon: sfsymbols:bell.slash

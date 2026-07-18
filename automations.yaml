@@ -38,32 +38,40 @@
       - switch.mudroom_closet_light_switch
 - id: ups_emergency_shutdown
   alias: UPS Emergency Shutdown
-  description: Shutdown HA and NAS when UPS battery drops below 20%
+  description: Shut down the NAS and HA host when the rack UPS is on battery and drops
+    below 20%. Notification and logging must never block the shutdown chain.
   triggers:
   - trigger: numeric_state
     entity_id:
     - sensor.rack_ups_battery_charge
     below: 20
   conditions:
-  - condition: template
-    value_template: '{{ ''On Battery'' in states(''sensor.cyberpower_network_ups_status'')
-      }}
-
-      '
+  - condition: state
+    entity_id: binary_sensor.rack_ups_status
+    state: 'off'
   actions:
-  - action: notify.p1_critical
+  - action: notify.p1_alert
     data:
       title: "\U0001FAAB UPS battery critical - shutting down"
-      message: Battery at {{ states('sensor.cyberpower_network_ups_battery_charge',
-        rounded=True, with_unit=True) }} - Initiating emergency shutdown
+      message: Battery at {{ states('sensor.rack_ups_battery_charge', rounded=True,
+        with_unit=True) }} - Initiating emergency shutdown
       data:
         tag: p1_ups_critical
         subtitle: Lavender Circle
         group: ha
         push:
           interruption-level: critical
-        url: /1-system/alerts
+        url: /dashboard-lavender/alerts
+    continue_on_error: true
+  - action: logbook.log
+    metadata: {}
+    data:
+      name: System
+      message: ups battery critical - shutting down nas and ha host
+      entity_id: input_boolean.log_event
+    continue_on_error: true
   - action: synology_dsm.shutdown
+    continue_on_error: true
   - delay:
       seconds: 10
   - action: hassio.host_shutdown
@@ -706,9 +714,8 @@
   alias: Leak Controller
   description: Closes the water main when any leak sensor stays wet for 5 minutes
     (the P1 leak alert fires at 10 seconds, so this is the shutoff of last resort,
-    not the warning). Verifies the valve confirms closed within 90 seconds and sends
-    a P1 if it does not. Also sends a P1 whenever the valve closes for any reason,
-    or reports jammed — including failed auto tests.
+    not the warning). Control only — jam and failed-to-close notifications come from
+    alert.p1_main_water_valve, and the close is recorded in the system event log.
   triggers:
   - trigger: state
     entity_id:
@@ -720,76 +727,21 @@
       minutes: 5
       seconds: 0
     id: wet
-  - trigger: state
-    entity_id:
-    - valve.main_water_valve_actuator
-    to:
-    - closed
-    id: closed
-  - trigger: state
-    entity_id:
-    - binary_sensor.main_water_valve_actuator_valve_jammed
-    to:
-    - 'on'
-    id: jammed
   conditions: []
   actions:
-  - choose:
-    - conditions:
-      - condition: trigger
-        id:
-        - wet
-      sequence:
-      - action: valve.close_valve
-        metadata: {}
-        target:
-          entity_id: valve.main_water_valve_actuator
-        data: {}
-        continue_on_error: true
-      - wait_for_trigger:
-        - trigger: state
-          entity_id:
-          - valve.main_water_valve_actuator
-          to:
-          - closed
-        timeout:
-          seconds: 90
-        continue_on_timeout: true
-      - if:
-        - condition: not
-          conditions:
-          - condition: state
-            entity_id: valve.main_water_valve_actuator
-            state: closed
-        then:
-        - action: notify.p1_alert
-          metadata: {}
-          data:
-            title: "\U0001F6BF Water Main Failed to Close"
-            message: Attempted to close the water main after a leak, but it did not
-              confirm closed. Check the valve.
-    - conditions:
-      - condition: trigger
-        id:
-        - closed
-      sequence:
-      - action: notify.p1_alert
-        metadata: {}
-        data:
-          title: "\U0001F6BF Water Main Closed"
-          message: The water main was closed.
-    - conditions:
-      - condition: trigger
-        id:
-        - jammed
-      sequence:
-      - action: notify.p1_alert
-        metadata: {}
-        data:
-          title: "\U0001F6BF Water Main Jammed"
-          message: Attempted to close the water main, but failed because it is jammed.
-  mode: queued
-  max: 10
+  - action: valve.close_valve
+    metadata: {}
+    target:
+      entity_id: valve.main_water_valve_actuator
+    data: {}
+    continue_on_error: true
+  - action: logbook.log
+    metadata: {}
+    data:
+      name: System
+      message: closed the water main — leak detected
+      entity_id: input_boolean.log_event
+  mode: single
 - id: '1766884336652'
   alias: Maintain Device Filters
   description: ''
