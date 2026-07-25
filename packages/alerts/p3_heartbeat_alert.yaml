@@ -6,13 +6,13 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: alerts/p2_heartbeat_alert
+        package: alerts/p3_heartbeat_alert
 
-    alert.p2_heartbeat:
+    alert.p3_heartbeat:
       <<: *package
     automation.heartbeat_auto_send:
       <<: *package
-    binary_sensor.p2_heartbeat_trigger:
+    binary_sensor.p3_heartbeat_trigger:
       <<: *package
     input_datetime.last_successful_heartbeat:
       <<: *package
@@ -70,8 +70,8 @@ automation:
 
 template:
   - binary_sensor:
-      - name: P2 Heartbeat Trigger
-        unique_id: p2_heartbeat_trigger
+      - name: P3 Heartbeat Trigger
+        unique_id: p3_heartbeat_trigger
         state: >
           {{ now().timestamp() - state_attr('input_datetime.last_successful_heartbeat', 'timestamp') > 300 }}
         attributes:
@@ -84,9 +84,9 @@ template:
             {% endif %}
 
 alert:
-  p2_heartbeat:
+  p3_heartbeat:
     name: Heartbeat Warning
-    entity_id: binary_sensor.p2_heartbeat_trigger
+    entity_id: binary_sensor.p3_heartbeat_trigger
     state: "on"
     can_acknowledge: true
     skip_first: false
@@ -95,16 +95,16 @@ alert:
       - 60
       - 1440
     title: >
-      {{ state_attr('binary_sensor.p2_heartbeat_trigger', 'title') }}
+      {{ state_attr('binary_sensor.p3_heartbeat_trigger', 'title') }}
     message: >
-      {{ state_attr('binary_sensor.p2_heartbeat_trigger', 'message') }}
+      {{ state_attr('binary_sensor.p3_heartbeat_trigger', 'message') }}
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p2_heartbeat_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p3_heartbeat_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
-      tag: p2_heartbeat
+      tag: p3_heartbeat
       group: ha
       url: /dashboard-lavender/alerts
       actions:
-        - action: alert.p2_heartbeat.mute
+        - action: alert.p3_heartbeat.mute
           title: "Mute"
           icon: "sfsymbols:bell.slash"

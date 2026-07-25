@@ -1,0 +1,67 @@
+# Frontdoor Lock Jammed Alert
+# Alerts
+#
+---
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      pkg: &package
+        package: alerts/p2_frontdoor_lock_jammed_alert
+
+    alert.p2_frontdoor_lock_jammed:
+      <<: *package
+    binary_sensor.p2_frontdoor_lock_jammed_trigger:
+      <<: *package
+
+template:
+  - binary_sensor:
+      - name: P2 Frontdoor Lock Jammed Trigger
+        unique_id: p2_frontdoor_lock_jammed_trigger
+        variables:
+          source: lock.front_door_lock
+        # The Schlage integration is cloud-polled and drops the lock to
+        # `unavailable` for 30s-7min several times a week. Hold the last known
+        # value across those gaps instead of clearing — otherwise a live jam
+        # would send a false "Recovered" push every time the cloud hiccups.
+        state: >
+          {% set source_state = states(source) %}
+          {% if source_state in ['unknown', 'unavailable', 'none'] %}
+            {{ is_state(this.entity_id, 'on') }}
+          {% else %}
+            {{ source_state == 'jammed' }}
+          {% endif %}
+        delay_on:
+          minutes: 2
+        attributes:
+          device_class: problem
+          title: 🔒 Frontdoor Lock Jammed
+          message: >
+            The deadbolt did not throw. The front door may be unlocked.
+          source_entity_id: >
+            {{ source }}
+
+alert:
+  p2_frontdoor_lock_jammed:
+    name: Frontdoor Lock Jammed
+    entity_id: binary_sensor.p2_frontdoor_lock_jammed_trigger
+    state: 'on'
+    can_acknowledge: true
+    skip_first: false
+    notifiers: persistent_notification
+    repeat:
+      - 60
+    title: >
+      {{ state_attr('binary_sensor.p2_frontdoor_lock_jammed_trigger', 'title') }}
+    message: >
+      {{ state_attr('binary_sensor.p2_frontdoor_lock_jammed_trigger', 'message') }}
+    done_message: >
+      Recovered at {{ as_local(states.binary_sensor.p2_frontdoor_lock_jammed_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+    data:
+      tag: p2_frontdoor_lock_jammed
+      group: ha
+      url: /dashboard-lavender/alerts
+      actions:
+        - action: alert.p2_frontdoor_lock_jammed.mute
+          title: Mute
+          icon: sfsymbols:bell.slash

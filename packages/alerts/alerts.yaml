@@ -20,6 +20,8 @@ homeassistant:
       <<: *package
     sensor.p2_alert_count:
       <<: *package
+    sensor.p3_alert_count:
+      <<: *package
 
 template:
   - sensor:
@@ -38,6 +40,15 @@ template:
         state: >
           {{ states.alert
             | selectattr('object_id', 'match', '^p2_')
+            | selectattr('state', 'ne', 'idle')
+            | list
+            | count }}
+      - name: P3 Alert Count
+        unique_id: p3_alert_count
+        icon: mdi:alert-circle-outline
+        state: >
+          {{ states.alert
+            | selectattr('object_id', 'match', '^p3_')
             | selectattr('state', 'ne', 'idle')
             | list
             | count }}
@@ -99,6 +110,11 @@ automation:
   #   - Gated to active hours only — overnight P2s surface via morning digest.
   #   - Sends to notify.p2_alert + household members at home.
   #
+  # P3 alerts (notifiers: persistent_notification):
+  #   - Same delivery path as P2, but Todd only — the household loop is skipped.
+  #   - For alerts nobody else can act on (device offline, system usage).
+  #   - Gated to active hours; digested at 8am like P2.
+  #
   # Only fires on idle→on (new trigger) or on→idle (recovery).
   # The off→on transition from daily unmute is intentionally excluded.
   # Todd is excluded from the household loop — P1 alert entity covers him,
@@ -106,7 +122,7 @@ automation:
   - id: alert_dispatcher
     alias: Alert Dispatcher
     description: >
-      Delivers push notifications for all P1 and P2 alerts.
+      Delivers push notifications for all P1, P2 and P3 alerts.
     mode: parallel
     max: 10
     triggers:
@@ -116,7 +132,8 @@ automation:
       - condition: template
         value_template: >
           {{ (trigger.event.data.entity_id.startswith('alert.p1_') or
-              trigger.event.data.entity_id.startswith('alert.p2_'))
+              trigger.event.data.entity_id.startswith('alert.p2_') or
+              trigger.event.data.entity_id.startswith('alert.p3_'))
              and trigger.event.data.new_state is not none
              and trigger.event.data.old_state is not none
              and (
@@ -132,6 +149,8 @@ automation:
       - variables:
           alert_entity_id: "{{ trigger.event.data.entity_id }}"
           is_p1: "{{ alert_entity_id.startswith('alert.p1_') }}"
+          is_p3: "{{ alert_entity_id.startswith('alert.p3_') }}"
+          priority_notifier: "{{ 'notify.' ~ alert_entity_id.split('.')[1][:2] ~ '_alert' }}"
           new_state: "{{ trigger.event.data.new_state.state }}"
           trigger_entity_id: >
             {{ alert_entity_id | replace('alert.', 'binary_sensor.') + '_trigger' }}
@@ -140,12 +159,17 @@ automation:
                | default(state_attr(alert_entity_id, 'friendly_name'), true) }}
           message: >
             {{ state_attr(trigger_entity_id, 'message') | default('') }}
+          # P3 is Todd-only by definition — never fan out to the house.
           others_at_home: >
-            {{ expand('group.household')
-              | selectattr('state', 'eq', 'home')
-              | rejectattr('entity_id', 'eq', 'person.todd_gardner')
-              | map(attribute='entity_id')
-              | list }}
+            {% if is_p3 %}
+              []
+            {% else %}
+              {{ expand('group.household')
+                | selectattr('state', 'eq', 'home')
+                | rejectattr('entity_id', 'eq', 'person.todd_gardner')
+                | map(attribute='entity_id')
+                | list }}
+            {% endif %}
       - choose:
           # P1 new alert — household at home only (alert entity handles Todd)
           - conditions:
@@ -184,12 +208,12 @@ automation:
                           group: ha
                           url: /dashboard-lavender/alerts
 
-          # P2 new alert — Todd + household at home
+          # P2/P3 new alert — Todd (+ household at home for P2 only)
           - conditions:
               - condition: template
                 value_template: "{{ not is_p1 and new_state == 'on' }}"
             sequence:
-              - action: notify.p2_alert
+              - action: "{{ priority_notifier }}"
                 data:
                   title: "{{ title }}"
                   message: "{{ message }}"
@@ -213,12 +237,12 @@ automation:
                           group: ha
                           url: /dashboard-lavender/alerts
 
-          # P2 recovery — Todd + household at home
+          # P2/P3 recovery — Todd (+ household at home for P2 only)
           - conditions:
               - condition: template
                 value_template: "{{ not is_p1 and new_state == 'idle' }}"
             sequence:
-              - action: notify.p2_alert
+              - action: "{{ priority_notifier }}"
                 data:
                   title: "{{ title }} — Recovered"
                   message: >
@@ -266,6 +290,11 @@ automation:
               | selectattr('object_id', 'match', '^p2_')
               | selectattr('state', 'ne', 'idle')
               | list }}
+          active_p3s: >
+            {{ states.alert
+              | selectattr('object_id', 'match', '^p3_')
+              | selectattr('state', 'ne', 'idle')
+              | list }}
           others_at_home: >
             {{ expand('group.household')
               | selectattr('state', 'eq', 'home')
@@ -295,3 +324,15 @@ automation:
                     data:
                       group: ha
                       url: /dashboard-lavender/alerts
+      - if:
+          - condition: template
+            value_template: "{{ active_p3s | count > 0 }}"
+        then:
+          - action: notify.p3_alert
+            data:
+              title: "ℹ️ Active P3 Alerts"
+              message: >
+                {{ active_p3s | map(attribute='name') | join(', ') }}
+              data:
+                group: ha
+                url: /dashboard-lavender/alerts

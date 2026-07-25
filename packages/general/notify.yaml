@@ -27,6 +27,8 @@ homeassistant:
       <<: *package
     notify.p2_alert:
       <<: *package
+    notify.p3_alert:
+      <<: *package
     notify.maintenance_notice:
       <<: *package
 
@@ -100,6 +102,12 @@ notify:
       - service: email_todd_gardner
 
   - name: p2_alert
+    platform: group
+    services:
+      - service: todd_gardner
+      - service: email_todd_gardner
+
+  - name: p3_alert
     platform: group
     services:
       - service: todd_gardner

@@ -1,4 +1,4 @@
-# Device Offline Alerts
+# Device Offline Alert
 # Alerts
 #
 ---
@@ -7,23 +7,27 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: alerts/p2_device_offline_alert
+        package: alerts/p3_device_offline_alert
 
-    alert.p2_device_offline:
+    alert.p3_device_offline:
       <<: *package
-    binary_sensor.p2_device_offline_trigger:
+    binary_sensor.p3_device_offline_trigger:
       <<: *package
 
 template:
   - binary_sensor:
-      - name: P2 Device Offline Trigger
-        unique_id: p2_device_offline_trigger
+      - name: P3 Device Offline Trigger
+        unique_id: p3_device_offline_trigger
         variables:
           label: Production
         state: >
           {{ this.attributes.get('active_devices', []) | count > 0 }}
+        # Raised from 10 min: z-wave nodes that flap (dead ~14 min, then
+        # revived by the hourly Z-Wave Heartbeat ping) were tripping the alert
+        # AND a recovery push. 30 min still catches a genuinely dead device
+        # inside the hour.
         delay_on:
-          minutes: 10
+          minutes: 30
         availability: >
           {{ label_devices(label) | count > 0 }}
         attributes:
@@ -79,9 +83,9 @@ template:
             {{ active_devices | first | default('') }}
 
 alert:
-  p2_device_offline:
+  p3_device_offline:
     name: Device Offline
-    entity_id: binary_sensor.p2_device_offline_trigger
+    entity_id: binary_sensor.p3_device_offline_trigger
     state: 'on'
     can_acknowledge: true
     skip_first: false
@@ -89,16 +93,16 @@ alert:
     repeat:
       - 1440
     title: >
-      {{ state_attr('binary_sensor.p2_device_offline_trigger', 'title') }}
+      {{ state_attr('binary_sensor.p3_device_offline_trigger', 'title') }}
     message: >
-      {{ state_attr('binary_sensor.p2_device_offline_trigger', 'message') }}
+      {{ state_attr('binary_sensor.p3_device_offline_trigger', 'message') }}
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p2_device_offline_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p3_device_offline_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
-      tag: p2_device_offline
+      tag: p3_device_offline
       group: ha
       url: /dashboard-lavender/alerts
       actions:
-        - action: alert.p2_device_offline.mute
+        - action: alert.p3_device_offline.mute
           title: Mute
           icon: sfsymbols:bell.slash

@@ -9,11 +9,11 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: alerts/p2_package_alert
+        package: alerts/p3_package_alert
 
-    alert.p2_package:
+    alert.p3_package:
       <<: *package
-    binary_sensor.p2_package_trigger:
+    binary_sensor.p3_package_trigger:
       <<: *package
     # Adding this UI helper to the package for testing
     binary_sensor.test_package_availability:
@@ -21,8 +21,8 @@ homeassistant:
 
 template:
   - binary_sensor:
-      - name: P2 Package Availability Trigger
-        unique_id: p2_package_trigger
+      - name: P3 Package Trigger
+        unique_id: p3_package_trigger
         state: >
           {{ this.attributes.get('active_entities', []) | count > 0 }}
         delay_on:
@@ -38,7 +38,7 @@ template:
             {{ states
               | selectattr('attributes.package', 'defined')
               | selectattr('state', 'in', ['unavailable', 'unknown', 'none'])
-              | rejectattr('entity_id', 'eq', 'binary_sensor.p2_package_trigger')
+              | rejectattr('entity_id', 'eq', 'binary_sensor.p3_package_trigger')
               | map(attribute="entity_id", default="Unknown")
               | list }}
           title: ⚙️ Package entity unavailable
@@ -64,9 +64,9 @@ template:
             {% endif %}
 
 alert:
-  p2_package:
+  p3_package:
     name: Package Availability
-    entity_id: binary_sensor.p2_package_trigger
+    entity_id: binary_sensor.p3_package_trigger
     state: "on"
     can_acknowledge: true
     skip_first: false
@@ -74,16 +74,16 @@ alert:
     repeat:
       - 1440
     title: >
-      {{ state_attr('binary_sensor.p2_package_trigger', 'title') }}
+      {{ state_attr('binary_sensor.p3_package_trigger', 'title') }}
     message: >
-      {{ state_attr('binary_sensor.p2_package_trigger', 'message') }}
+      {{ state_attr('binary_sensor.p3_package_trigger', 'message') }}
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p2_package_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p3_package_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
-      tag: p2_package
+      tag: p3_package
       group: ha
       url: /dashboard-lavender/alerts
       actions:
-        - action: alert.p2_package.mute
+        - action: alert.p3_package.mute
           title: "Mute"
           icon: "sfsymbols:bell.slash"

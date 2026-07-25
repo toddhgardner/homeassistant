@@ -7,17 +7,17 @@ homeassistant:
   customize:
     package.node_anchors:
       pkg: &package
-        package: alerts/p2_family_location_alert
+        package: alerts/p3_family_location_alert
 
-    alert.p2_family_location:
+    alert.p3_family_location:
       <<: *package
-    binary_sensor.p2_family_location_trigger:
+    binary_sensor.p3_family_location_trigger:
       <<: *package
 
 template:
   - binary_sensor:
-      - name: P2 Family Location Trigger
-        unique_id: p2_family_location_trigger
+      - name: P3 Family Location Trigger
+        unique_id: p3_family_location_trigger
         variables:
           location_permission_list:
             - sensor.erins_iphone_location_permission
@@ -68,9 +68,9 @@ template:
             {% endif %}
 
 alert:
-  p2_family_location:
+  p3_family_location:
     name: Family Location
-    entity_id: binary_sensor.p2_family_location_trigger
+    entity_id: binary_sensor.p3_family_location_trigger
     state: 'on'
     can_acknowledge: true
     skip_first: false
@@ -79,16 +79,16 @@ alert:
       - 60
       - 1440
     title: >
-      {{ state_attr('binary_sensor.p2_family_location_trigger', 'title') }}
+      {{ state_attr('binary_sensor.p3_family_location_trigger', 'title') }}
     message: >
-      {{ state_attr('binary_sensor.p2_family_location_trigger', 'message') }}
+      {{ state_attr('binary_sensor.p3_family_location_trigger', 'message') }}
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p2_family_location_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
+      Recovered at {{ as_local(states.binary_sensor.p3_family_location_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
-      tag: p2_family_location
+      tag: p3_family_location
       group: ha
       url: /dashboard-lavender/alerts
       actions:
-        - action: alert.p2_family_location.mute
+        - action: alert.p3_family_location.mute
           title: Mute
           icon: sfsymbols:bell.slash
