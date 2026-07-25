@@ -77,12 +77,11 @@ alert:
     repeat:
       - 1440
     title: >
-      {{ state_attr('binary_sensor.p1_refrigerator_temperature_trigger', 'title') }}
+      {{ state_attr('binary_sensor.p2_refrigerator_temperature_trigger', 'title') }}
     message: >
-      {{ state_attr('binary_sensor.p1_refrigerator_temperature_trigger', 'message') }}
+      {{ state_attr('binary_sensor.p2_refrigerator_temperature_trigger', 'message') }}
     done_message: >
-      Recovered at {{ as_local(states.binary_sensor.p1_refrigerator_temperature_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
-    data:
+      Recovered at {{ as_local(states.binary_sensor.p2_refrigerator_temperature_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_refrigerator_temperature
       group: ha

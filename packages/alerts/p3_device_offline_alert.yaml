@@ -42,6 +42,7 @@ template:
           active_devices: >
             {% set ns = namespace(active_devices=[]) %}
             {% set prod_devices = label_devices(label) %}
+            {% set ping_entities = integration_entities('ping') %}
             {% for device_id in prod_devices %}
               {% set device_entities = states
                 | selectattr('entity_id', 'in', device_entities(device_id))
@@ -57,7 +58,22 @@ template:
                 | selectattr('entity_id', 'search', '_node_status$')
                 | selectattr('state', 'eq', 'dead')
                 | list | count > 0 %}
-              {% if (entity_offline_count == entity_count) or node_dead %}
+              {# A hub with no entities of its own (the Bond bridge has none) is
+                 monitored by giving it a Ping sensor. A failed ping reads 'off',
+                 never 'unavailable', so the count test above cannot see it.
+                 Deliberately limited to ping entities: other integrations use
+                 device_class connectivity for things that are not reachability,
+                 e.g. Konnected's 'synced' sensor on the garage openers. #}
+              {% set ping_down = device_entities
+                | selectattr('entity_id', 'in', ping_entities)
+                | selectattr('attributes.device_class', 'defined')
+                | selectattr('attributes.device_class', 'eq', 'connectivity')
+                | selectattr('state', 'eq', 'off')
+                | list | count > 0 %}
+              {# The entity_count > 0 guard matters: a device with no entities
+                 makes 0 == 0 true and would report offline forever. #}
+              {% if (entity_count > 0 and entity_offline_count == entity_count)
+                    or node_dead or ping_down %}
                 {% set ns.active_devices = ns.active_devices + [device_id] %}
               {% endif %}
             {% endfor %}
