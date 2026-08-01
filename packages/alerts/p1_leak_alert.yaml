@@ -45,12 +45,28 @@ template:
             {% if entity_count == 0 %}
               All sensors dry.
             {% else %}
-              {% set entity_first = active_entities | first %}
-              {% if entity_count == 1 %}
-                {{ state_attr(entity_first, 'friendly_name') }} is wet.
-              {% else %}
-                {{ state_attr(entity_first, 'friendly_name') }} and {{ entity_count - 1 }} others are wet.
-              {% endif %}
+              {{ active_entities
+                | map('state_attr', 'friendly_name')
+                | join(', ') }} {{ 'is' if entity_count == 1 else 'are' }} wet.
+            {% endif %}
+          # Retains the most recent non-empty wet list (names) so the
+          # recovery notification can say WHAT dried out — active_entities
+          # is already empty again by the time the recovery is dispatched.
+          # this.attributes reads the previous render.
+          last_wet_sensors: >
+            {% set active = this.attributes.get('active_entities', []) %}
+            {% if active | count > 0 %}
+              {{ active | map('state_attr', 'friendly_name') | list }}
+            {% else %}
+              {{ this.attributes.get('last_wet_sensors', []) }}
+            {% endif %}
+          # Picked up by the Alert Dispatcher's recovery path.
+          recovery_message: >
+            {% set last = this.attributes.get('last_wet_sensors', []) %}
+            {% if last | count > 0 %}
+              {{ last | join(', ') }} dry again.
+            {% else %}
+              Sensors dry again.
             {% endif %}
           source_entity_id: >
             {{ group_entity_id }}
@@ -69,6 +85,7 @@ alert:
     message: >
       {{ state_attr('binary_sensor.p1_leak_trigger', 'message') }}
     done_message: >
+      {{ state_attr('binary_sensor.p1_leak_trigger', 'recovery_message') }}
       Recovered at {{ as_local(states.binary_sensor.p1_leak_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p1_leak

@@ -46,17 +46,38 @@ template:
           title: ❄️ Refrigerator Temperature Range
           message: >
             {% set active_entities = this.attributes.get('active_entities', []) %}
-            {% set entity_count = active_entities | count %}
-            {% if entity_count == 0 %}
+            {% if active_entities | count == 0 %}
               All refrigerators in range.
             {% else %}
-              {% set entity_first = active_entities | first %}
-              {% set entity_source = state_attr(entity_first, 'entity_id') %}
-              {% if entity_count == 1 %}
-                {{ state_attr(entity_source, 'friendly_name') }} ({{ states(entity_source, rounded=True, with_unit=True) }}) is {{ state_attr(entity_first, 'position') }} its range ({{ state_attr(entity_first, 'lower') }} - {{ state_attr(entity_first, 'upper') }}).
-              {% else %}
-                {{ state_attr(entity_source, 'friendly_name') }} ({{ states(entity_source, rounded=True, with_unit=True) }}) and {{ entity_count - 1 }} others are outside their range.
-              {% endif %}
+              {% set ns = namespace(parts=[]) %}
+              {% for e in active_entities %}
+                {% set src = state_attr(e, 'entity_id') %}
+                {% set ns.parts = ns.parts + [state_attr(src, 'friendly_name')
+                  ~ ' (' ~ states(src, rounded=True, with_unit=True) ~ ') is '
+                  ~ state_attr(e, 'position') ~ ' its range ('
+                  ~ state_attr(e, 'lower') ~ ' - ' ~ state_attr(e, 'upper') ~ ')'] %}
+              {% endfor %}
+              {{ ns.parts | join(', ') }}.
+            {% endif %}
+          # Retained so the recovery can say what cleared — same pattern
+          # as p1_leak_alert.yaml (this.attributes reads the previous render).
+          last_out_of_range: >
+            {% set active = this.attributes.get('active_entities', []) %}
+            {% if active | count > 0 %}
+              {% set ns = namespace(names=[]) %}
+              {% for e in active %}
+                {% set ns.names = ns.names + [state_attr(state_attr(e, 'entity_id'), 'friendly_name')] %}
+              {% endfor %}
+              {{ ns.names }}
+            {% else %}
+              {{ this.attributes.get('last_out_of_range', []) }}
+            {% endif %}
+          recovery_message: >
+            {% set last = this.attributes.get('last_out_of_range', []) %}
+            {% if last | count > 0 %}
+              {{ last | join(', ') }} back in range.
+            {% else %}
+              Refrigerators back in range.
             {% endif %}
           source_entity_id: >
             {% set active_entities = this.attributes.get('active_entities', []) %}
@@ -81,6 +102,7 @@ alert:
     message: >
       {{ state_attr('binary_sensor.p2_refrigerator_temperature_trigger', 'message') }}
     done_message: >
+      {{ state_attr('binary_sensor.p2_refrigerator_temperature_trigger', 'recovery_message') }}
       Recovered at {{ as_local(states.binary_sensor.p2_refrigerator_temperature_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p2_refrigerator_temperature

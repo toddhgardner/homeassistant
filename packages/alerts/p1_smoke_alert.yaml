@@ -39,12 +39,28 @@ template:
           title: 🔥 Smoke Detected
           message: >
             {% set active_entities = this.attributes.get('active_entities', []) %}
-            {% set entity_count = active_entities | count %}
-            {% if entity_count == 0 %}
+            {% if active_entities | count == 0 %}
               All sensors clear.
             {% else %}
-              {% set entity_first = active_entities | first %}
-              {{ state_attr(entity_first, 'friendly_name') }} detected smoke.
+              {{ active_entities
+                | map('state_attr', 'friendly_name')
+                | join(', ') }} detected smoke.
+            {% endif %}
+          # Retained so the recovery can say what cleared — same pattern
+          # as p1_leak_alert.yaml (this.attributes reads the previous render).
+          last_active_sensors: >
+            {% set active = this.attributes.get('active_entities', []) %}
+            {% if active | count > 0 %}
+              {{ active | map('state_attr', 'friendly_name') | list }}
+            {% else %}
+              {{ this.attributes.get('last_active_sensors', []) }}
+            {% endif %}
+          recovery_message: >
+            {% set last = this.attributes.get('last_active_sensors', []) %}
+            {% if last | count > 0 %}
+              {{ last | join(', ') }} clear again.
+            {% else %}
+              Sensors clear again.
             {% endif %}
           source_entity_id: >
             {{ group_entity_id }}
@@ -63,6 +79,7 @@ alert:
     message: >
       {{ state_attr('binary_sensor.p1_smoke_trigger', 'message') }}
     done_message: >
+      {{ state_attr('binary_sensor.p1_smoke_trigger', 'recovery_message') }}
       Recovered at {{ as_local(states.binary_sensor.p1_smoke_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p1_smoke

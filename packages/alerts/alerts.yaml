@@ -119,6 +119,14 @@ automation:
   # The off→on transition from daily unmute is intentionally excluded.
   # Todd is excluded from the household loop — P1 alert entity covers him,
   # and P2 notify.p2_alert covers him.
+  #
+  # Every transition is logged to the system event log regardless of active
+  # hours — only the pushes are gated, so the Ops history stays complete.
+  #
+  # Recovery notifications reuse the SAME title as the firing so emails
+  # thread together; the recovery detail lives in the message. A trigger
+  # sensor can provide a recovery_message attribute (e.g. the list of
+  # devices that came back) — otherwise a plain "Resolved at" is sent.
   - id: alert_dispatcher
     alias: Alert Dispatcher
     description: >
@@ -140,10 +148,6 @@ automation:
                (trigger.event.data.old_state.state == 'idle' and trigger.event.data.new_state.state == 'on')
                or
                (trigger.event.data.old_state.state == 'on' and trigger.event.data.new_state.state == 'idle')
-             )
-             and (
-               trigger.event.data.entity_id.startswith('alert.p1_')
-               or is_state('schedule.active_hours', 'on')
              ) }}
     actions:
       - variables:
@@ -158,7 +162,12 @@ automation:
             {{ state_attr(trigger_entity_id, 'title')
                | default(state_attr(alert_entity_id, 'friendly_name'), true) }}
           message: >
-            {{ state_attr(trigger_entity_id, 'message') | default('') }}
+            {{ state_attr(trigger_entity_id, 'message') | default('') | trim }}
+          # Optional per-trigger recovery detail (e.g. which devices came
+          # back). None for triggers that don't define it.
+          recovery_detail: "{{ state_attr(trigger_entity_id, 'recovery_message') }}"
+          recovery_message: >
+            {{ (recovery_detail | trim ~ ' ') if recovery_detail else '' }}Resolved at {{ now().strftime('%a %b %-d, %-I:%M %p') }}
           # P3 is Todd-only by definition — never fan out to the house.
           others_at_home: >
             {% if is_p3 %}
@@ -170,6 +179,19 @@ automation:
                 | map(attribute='entity_id')
                 | list }}
             {% endif %}
+      # Always log, even overnight when the push is suppressed.
+      - action: logbook.log
+        continue_on_error: true
+        data:
+          name: System
+          message: >-
+            {%- set alert_name = state_attr(alert_entity_id, 'friendly_name') | lower -%}
+            {%- if new_state == 'on' -%}
+              {{ alert_name }} alert fired: {{ message }}
+            {%- else -%}
+              {{ alert_name }} alert recovered{{ (': ' ~ recovery_detail | trim) if recovery_detail else '' }}
+            {%- endif -%}
+          entity_id: input_boolean.log_event
       - choose:
           # P1 new alert — household at home only (alert entity handles Todd)
           - conditions:
@@ -200,9 +222,8 @@ automation:
                   sequence:
                     - action: "{{ state_attr(repeat.item, 'notify') }}"
                       data:
-                        title: "{{ title }} — Recovered"
-                        message: >
-                          Resolved at {{ now().strftime('%a %b %-d, %-I:%M %p') }}
+                        title: "{{ title }}"
+                        message: "{{ recovery_message }}"
                         data:
                           tag: "{{ alert_entity_id }}"
                           group: ha
@@ -211,7 +232,7 @@ automation:
           # P2/P3 new alert — Todd (+ household at home for P2 only)
           - conditions:
               - condition: template
-                value_template: "{{ not is_p1 and new_state == 'on' }}"
+                value_template: "{{ not is_p1 and new_state == 'on' and is_state('schedule.active_hours', 'on') }}"
             sequence:
               - action: "{{ priority_notifier }}"
                 data:
@@ -240,13 +261,12 @@ automation:
           # P2/P3 recovery — Todd (+ household at home for P2 only)
           - conditions:
               - condition: template
-                value_template: "{{ not is_p1 and new_state == 'idle' }}"
+                value_template: "{{ not is_p1 and new_state == 'idle' and is_state('schedule.active_hours', 'on') }}"
             sequence:
               - action: "{{ priority_notifier }}"
                 data:
-                  title: "{{ title }} — Recovered"
-                  message: >
-                    Resolved at {{ now().strftime('%a %b %-d, %-I:%M %p') }}
+                  title: "{{ title }}"
+                  message: "{{ recovery_message }}"
                   data:
                     tag: "{{ alert_entity_id }}"
                     group: ha
@@ -256,9 +276,8 @@ automation:
                   sequence:
                     - action: "{{ state_attr(repeat.item, 'notify') }}"
                       data:
-                        title: "{{ title }} — Recovered"
-                        message: >
-                          Resolved at {{ now().strftime('%a %b %-d, %-I:%M %p') }}
+                        title: "{{ title }}"
+                        message: "{{ recovery_message }}"
                         data:
                           tag: "{{ alert_entity_id }}"
                           group: ha
@@ -284,16 +303,22 @@ automation:
               | selectattr('state', 'eq', 'off')
               | map(attribute='entity_id')
               | list }}
+      # Keep these as entity_id lists. A variables: block stringifies its
+      # result, and a list of state objects can't round-trip — downstream
+      # filters then iterate the string one character at a time, which is
+      # how the digest once sent a message of nothing but commas.
       - variables:
           active_p2s: >
             {{ states.alert
               | selectattr('object_id', 'match', '^p2_')
               | selectattr('state', 'ne', 'idle')
+              | map(attribute='entity_id')
               | list }}
           active_p3s: >
             {{ states.alert
               | selectattr('object_id', 'match', '^p3_')
               | selectattr('state', 'ne', 'idle')
+              | map(attribute='entity_id')
               | list }}
           others_at_home: >
             {{ expand('group.household')
@@ -309,7 +334,7 @@ automation:
             data:
               title: "⚠️ Active P2 Alerts"
               message: >
-                {{ active_p2s | map(attribute='name') | join(', ') }}
+                {{ active_p2s | map('state_attr', 'friendly_name') | join(', ') }}
               data:
                 group: ha
                 url: /dashboard-lavender/alerts
@@ -320,7 +345,7 @@ automation:
                   data:
                     title: "⚠️ Active P2 Alerts"
                     message: >
-                      {{ active_p2s | map(attribute='name') | join(', ') }}
+                      {{ active_p2s | map('state_attr', 'friendly_name') | join(', ') }}
                     data:
                       group: ha
                       url: /dashboard-lavender/alerts
@@ -332,7 +357,7 @@ automation:
             data:
               title: "ℹ️ Active P3 Alerts"
               message: >
-                {{ active_p3s | map(attribute='name') | join(', ') }}
+                {{ active_p3s | map('state_attr', 'friendly_name') | join(', ') }}
               data:
                 group: ha
                 url: /dashboard-lavender/alerts

@@ -48,17 +48,37 @@ template:
           title: 🖥️ System usage problem
           message: >
             {% set active_entities = this.attributes.get('active_entities', []) %}
-            {% set entity_count = active_entities | count %}
-            {% if entity_count == 0 %}
+            {% if active_entities | count == 0 %}
               All systems are okay.
             {% else %}
-              {% set entity_first = active_entities | first %}
-              {% set entity_source = state_attr(entity_first, 'entity_id') | default(entity_first, true) %}
-              {% if entity_count == 1 %}
-                {{ state_attr(entity_source, 'friendly_name') }} usage is high at {{ states(entity_source, rounded=True, with_unit=True) }}.
-              {% else %}
-                {{ state_attr(entity_source, 'friendly_name') }} ({{ states(entity_source, rounded=True, with_unit=True) }}) and {{ entity_count - 1 }} others are over usage limits.
-              {% endif %}
+              {% set ns = namespace(parts=[]) %}
+              {% for e in active_entities %}
+                {% set src = state_attr(e, 'entity_id') | default(e, true) %}
+                {% set ns.parts = ns.parts + [state_attr(src, 'friendly_name')
+                  ~ ' usage is high at ' ~ states(src, rounded=True, with_unit=True)] %}
+              {% endfor %}
+              {{ ns.parts | join(', ') }}.
+            {% endif %}
+          # Retained so the recovery can say what cleared — same pattern
+          # as p1_leak_alert.yaml (this.attributes reads the previous render).
+          last_over_limit: >
+            {% set active = this.attributes.get('active_entities', []) %}
+            {% if active | count > 0 %}
+              {% set ns = namespace(names=[]) %}
+              {% for e in active %}
+                {% set src = state_attr(e, 'entity_id') | default(e, true) %}
+                {% set ns.names = ns.names + [state_attr(src, 'friendly_name')] %}
+              {% endfor %}
+              {{ ns.names }}
+            {% else %}
+              {{ this.attributes.get('last_over_limit', []) }}
+            {% endif %}
+          recovery_message: >
+            {% set last = this.attributes.get('last_over_limit', []) %}
+            {% if last | count > 0 %}
+              {{ last | join(', ') }} back under limits.
+            {% else %}
+              Systems back under limits.
             {% endif %}
           source_entity_id: >
             {% set active_entities = this.attributes.get('active_entities', []) %}
@@ -85,6 +105,7 @@ alert:
     message: >
       {{ state_attr('binary_sensor.p3_system_usage_trigger', 'message') }}
     done_message: >
+      {{ state_attr('binary_sensor.p3_system_usage_trigger', 'recovery_message') }}
       Recovered at {{ as_local(states.binary_sensor.p3_system_usage_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p3_system_usage

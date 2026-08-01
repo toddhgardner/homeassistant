@@ -43,6 +43,17 @@ template:
             {% set ns = namespace(active_devices=[]) %}
             {% set prod_devices = label_devices(label) %}
             {% set ping_entities = integration_entities('ping') %}
+            {# The Bond bridge answers ping even when HA's session to it is
+               broken (every bond entity unavailable while the hub itself is
+               up and working), so the ping test alone cannot see that
+               failure. Treat the whole integration being unavailable as the
+               bridge being offline, attributed to its Production ping
+               device, which is named 'Bond Bridge'. #}
+            {% set bond_states = integration_entities('bond') | map('states') | list %}
+            {% set bond_down = bond_states | count > 0
+              and bond_states
+                | reject('in', ['unavailable', 'unknown', 'none'])
+                | list | count == 0 %}
             {% for device_id in prod_devices %}
               {% set device_entities = states
                 | selectattr('entity_id', 'in', device_entities(device_id))
@@ -70,10 +81,12 @@ template:
                 | selectattr('attributes.device_class', 'eq', 'connectivity')
                 | selectattr('state', 'eq', 'off')
                 | list | count > 0 %}
+              {% set bond_hub_down = bond_down
+                and device_name(device_id) == 'Bond Bridge' %}
               {# The entity_count > 0 guard matters: a device with no entities
                  makes 0 == 0 true and would report offline forever. #}
               {% if (entity_count > 0 and entity_offline_count == entity_count)
-                    or node_dead or ping_down %}
+                    or node_dead or ping_down or bond_hub_down %}
                 {% set ns.active_devices = ns.active_devices + [device_id] %}
               {% endif %}
             {% endfor %}
@@ -85,12 +98,38 @@ template:
             {% if device_count == 0 %}
               All devices online.
             {% else %}
-              {% set device_first = active_devices | first %}
-              {% if device_count == 1 %}
-                {{ device_name(device_first) }} is offline.
-              {% else %}
-                {{ device_name(device_first) }} and {{ device_count - 1 }} others are offline.
-              {% endif %}
+              {# Name every offline device. "X and 1 others" hid the Bond
+                 Bridge behind a flapping switch on 8/1 and the outage was
+                 missed even though the push went out. #}
+              {% set ns = namespace(names=[]) %}
+              {% for d in active_devices %}
+                {% set ns.names = ns.names + [device_name(d)] %}
+              {% endfor %}
+              {{ ns.names | join(', ') }} {{ 'is' if device_count == 1 else 'are' }} offline.
+            {% endif %}
+          # Retains the most recent non-empty offline list (names) so the
+          # recovery notification can say WHAT came back — active_devices is
+          # already empty again by the time the recovery is dispatched.
+          # this.attributes reads the previous render, so on the render that
+          # clears active_devices this still sees the outgoing list.
+          last_offline_devices: >
+            {% set active = this.attributes.get('active_devices', []) %}
+            {% if active | count > 0 %}
+              {% set ns = namespace(names=[]) %}
+              {% for d in active %}
+                {% set ns.names = ns.names + [device_name(d)] %}
+              {% endfor %}
+              {{ ns.names }}
+            {% else %}
+              {{ this.attributes.get('last_offline_devices', []) }}
+            {% endif %}
+          # Picked up by the Alert Dispatcher's recovery path.
+          recovery_message: >
+            {% set last = this.attributes.get('last_offline_devices', []) %}
+            {% if last | count > 0 %}
+              {{ last | join(', ') }} back online.
+            {% else %}
+              Devices back online.
             {% endif %}
           source_entity_id: >
             {{ this.entity_id }}
@@ -113,6 +152,7 @@ alert:
     message: >
       {{ state_attr('binary_sensor.p3_device_offline_trigger', 'message') }}
     done_message: >
+      {{ state_attr('binary_sensor.p3_device_offline_trigger', 'recovery_message') }}
       Recovered at {{ as_local(states.binary_sensor.p3_device_offline_trigger.last_changed).strftime('%a %b %-d, %-I:%M %p') }}
     data:
       tag: p3_device_offline
