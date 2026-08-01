@@ -55,6 +55,7 @@ lavender:
     .: |
       {% set is_p1 = states('sensor.p1_alert_count') | float(0) > 0 %}
       {% set is_p2 = states('sensor.p2_alert_count') | float(0) > 0 %}
+      {% set is_p3 = states('sensor.p3_alert_count') | float(0) > 0 %}
       :host {
         {% if (is_p1) %}
         --lavender-alert-color: var(--error-color);
@@ -62,6 +63,9 @@ lavender:
         {% elif (is_p2) %}
         --lavender-alert-color: var(--warning-color);
         --lavender-alert-text: "WARNING";
+        {% elif (is_p3) %}
+        --lavender-alert-color: var(--info-color);
+        --lavender-alert-text: "INFO";
         {% endif %}
       }
       @keyframes pulse {
@@ -75,7 +79,7 @@ lavender:
           box-shadow: inset 0 0 8px 8px var(--lavender-alert-color);
         }
       }
-      {% if (is_p1 or is_p2) %}
+      {% if (is_p1 or is_p2 or is_p3) %}
       hui-view {
         position: relative;
         box-shadow: inset 0 0 32px 32px var(--lavender-alert-color);
